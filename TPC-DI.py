@@ -33,6 +33,9 @@ os.makedirs(warehouse_path)
 conf = pyspark.SparkConf().set("spark.sql.legacy.createHiveTableByDefault", "false").set("spark.sql.warehouse.dir", warehouse_path).setAppName('appName').setMaster('local')
 sc = pyspark.SparkContext(conf=conf)
 spark = SparkSession(sc)
+spark_ui_url = sc.uiWebUrl
+print(f"Spark UI is available at {spark_ui_url}")
+
 
 scale_factor = "Scale3" # Options "Scale3", "Scale6", "Scale9", "Scale12"
 
@@ -1381,9 +1384,11 @@ def load_staging_FactMarketStory(dbname, staging_area_folder):
         `DM_LOW` FLOAT,
         `DM_VOL` INTEGER
     """
+    print(1)
+    print(f"{staging_area_folder}/DailyMarket.txt")
     DailyMarket_ = spark.read.format("csv").option("delimiter", "|").schema(schema).load(f"{staging_area_folder}/DailyMarket.txt")
     DailyMarket_.createOrReplaceTempView("dailymarket")
-    
+
     # TODO: DI Message
     DailyMarket_ = spark.sql(
         """
@@ -1450,8 +1455,11 @@ def load_staging_FactMarketStory(dbname, staging_area_folder):
          """)
     
     DailyMarket_.createOrReplaceTempView("dailymarket_insert")
+
     spark.sql("""
-               INSERT INTO FactMarketHistory(ClosePrice, DayHigh, DayLow, Volume, SK_SecurityID, SK_CompanyID, SK_DateID, SK_FiftyTwoWeekHighDate, SK_FiftyTwoWeekLowDate,  FiftyTwoWeekHigh, FiftyTwoWeekLow, Yield, PERatio, BatchID)
+               INSERT INTO FactMarketHistory(ClosePrice, DayHigh, DayLow, Volume, SK_SecurityID, SK_CompanyID, 
+                                            SK_DateID, SK_FiftyTwoWeekHighDate, SK_FiftyTwoWeekLowDate,  FiftyTwoWeekHigh, 
+                                            FiftyTwoWeekLow, Yield, PERatio, BatchID)
        SELECT * FROM dailymarket_insert
     """)
     
@@ -3043,6 +3051,8 @@ def load_update_staging_FactMarketStory(dbname, staging_area_folder_upl):
         `DM_LOW` FLOAT,
         `DM_VOL` INTEGER
     """
+    print(2)
+    print(f"{staging_area_folder_upl}/DailyMarket.txt")
     DailyMarket_ = spark.read.format("csv").option("delimiter", "|").schema(schema).load(f"{staging_area_folder_upl}/DailyMarket.txt")
     DailyMarket_.createOrReplaceTempView("dailymarket")
     
@@ -3303,7 +3313,7 @@ def run_historical_load(dbname, scale_factor, file_id):
     statustype = load_status_type(dbname, staging_area_folder)
     tradetype = load_trade_type(dbname, staging_area_folder)
 
-    factmarkethistory =load_staging_FactMarketStory(dbname, staging_area_folder)
+    factmarkethistory = load_staging_FactMarketStory(dbname, staging_area_folder)
     prospect = load_staging_Prospect(dbname, staging_area_folder)
 
     customer = load_customers(dbname, staging_area_folder)
@@ -3349,7 +3359,7 @@ def run_historical_load(dbname, scale_factor, file_id):
 def run_incremental_load(dbname, scale_factor, file_id):
     metrics = {}
 
-    staging_area_folder = f"{os.getcwd()}/data/{scale_factor}/Batch2/"
+    staging_area_folder = f"{os.getcwd()}/data/{scale_factor}/Batch2"
 
     # Run incremental update
     start = time.time()
@@ -3406,7 +3416,11 @@ def run(scale_factors=["Scale12"]):
         metrics_df.to_csv(f"dbfs/FileStore/overall_stats_{scale_factor}_{file_id}.csv", index=False)
     
         print(hist_res, hist_incr, metrics_df)
-run()
+try:
+    run()
+except Exception as e:
+    input()
+
 
 # COMMAND ----------
 
