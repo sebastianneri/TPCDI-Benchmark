@@ -37,7 +37,7 @@ spark_ui_url = sc.uiWebUrl
 print(f"Spark UI is available at {spark_ui_url}")
 
 
-scale_factor = "Scale3" # Options "Scale3", "Scale6", "Scale9", "Scale12"
+scale_factor = "Scale3" # Options "Scale3", "Scale4", "Scale5", "Scale6"
 
 # COMMAND ----------
 
@@ -1384,8 +1384,6 @@ def load_staging_FactMarketStory(dbname, staging_area_folder):
         `DM_LOW` FLOAT,
         `DM_VOL` INTEGER
     """
-    print(1)
-    print(f"{staging_area_folder}/DailyMarket.txt")
     DailyMarket_ = spark.read.format("csv").option("delimiter", "|").schema(schema).load(f"{staging_area_folder}/DailyMarket.txt")
     DailyMarket_.createOrReplaceTempView("dailymarket")
 
@@ -2352,7 +2350,7 @@ import pandas as pd
 
 def run_historical_load(scale_factors=["Scale3"]):
     dbname = "test"
-     # Options "Scale3", "Scale6", "Scale9", "Scale12"
+     # Options "Scale3", "Scale4", "Scale5", "Scale6"
     for scale_factor in scale_factors:
         metrics = {}
         # Init DB
@@ -3400,10 +3398,10 @@ def run_incremental_load(dbname, scale_factor, file_id):
 
     return metrics_df
 
-def run(scale_factors=["Scale12"]):
-  #"Scale3", "Scale6", "Scale9"]): 
+def run(scale_factors=["Scale6"]):
+  #"Scale3", "Scale4", "Scale5"]): 
     dbname = "test"
-     # Options "Scale3", "Scale6", "Scale9", "Scale12"
+     # Options "Scale3", "Scale4", "Scale5", "Scale6"
     file_id = id_generator()
     print(file_id)
     for scale_factor in scale_factors:
@@ -3453,7 +3451,7 @@ get_max(5,10)
 
 from datetime import datetime
 
-def load_dimen_customer(dbname):
+def load_dimen_customer(dbname, staging_area_folder_up2):
     #spark.sql(f"USE {dbname}")
     schema = """
             `CDC_FLAG` STRING,
@@ -3638,7 +3636,7 @@ def load_dimen_customer(dbname):
     
     return dimCustomer
     
-load_dimen_customer("test")
+#load_dimen_customer("test")
 
 # COMMAND ----------
 
@@ -3650,7 +3648,7 @@ load_dimen_customer("test")
 
 from datetime import datetime
 
-def load_dimen_account(dbname):
+def load_dimen_account(dbname, staging_area_folder_up2):
     #spark.sql(f"USE {dbname}")
     schema = """
             `CDC_FLAG` STRING,
@@ -3701,7 +3699,7 @@ def load_dimen_account(dbname):
     
     return dimAccount
     
-load_dimen_account("test")
+#load_dimen_account("test")
 
 
 
