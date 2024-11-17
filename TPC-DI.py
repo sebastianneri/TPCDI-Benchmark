@@ -30,7 +30,7 @@ warehouse_path = os.getcwd()+'/warehouse/'
 shutil.rmtree(warehouse_path)
 os.makedirs(warehouse_path)
 
-conf = pyspark.SparkConf().set("spark.sql.legacy.createHiveTableByDefault", "false").set("spark.sql.warehouse.dir", warehouse_path).setAppName('appName').setMaster('local')
+conf = pyspark.SparkConf().set("spark.sql.legacy.createHiveTableByDefault", "false").set("spark.sql.autoBroadcastJoinThreshold", -1).set("spark.sql.warehouse.dir", warehouse_path).setAppName('appName').setMaster('local')
 sc = pyspark.SparkContext(conf=conf)
 spark = SparkSession(sc)
 spark_ui_url = sc.uiWebUrl
@@ -2133,7 +2133,7 @@ def load_staging_dim_trade(dbname, staging_area_folder):
 
     # Create new view
     trade.createOrReplaceTempView("trade_insert")
-    trade.printSchema()
+    #trade.printSchema()
     
     trade_final=spark.sql("""
         SELECT  T_ID as TradeID,
@@ -2348,7 +2348,7 @@ def load_fact_watches(dbname, staging_area_folder):
 import time
 import pandas as pd
 
-def run_historical_load(scale_factors=["Scale3"]):
+def run_historical_load(scale_factors=["Scale3", "Scale4", "Scale5", "Scale6"]):
     dbname = "test"
      # Options "Scale3", "Scale4", "Scale5", "Scale6"
     for scale_factor in scale_factors:
@@ -2421,7 +2421,7 @@ def run_historical_load(scale_factors=["Scale3"]):
         
         metrics_df = pd.DataFrame(metrics, index=[0])
 
-        metrics_df.to_csv(f"results/data/historical_load_{scale_factor}.csv", index=False)
+        metrics_df.to_csv(f"{os.getcwd()}/results/data/historical_load_{scale_factor}.csv", index=False)
 
 run_historical_load()
 
@@ -2647,8 +2647,26 @@ def load_dimen_customer(dbname, staging_area_folder_upl):
                        left join Prospect as p on (c.C_L_NAME = p.LastName and c.C_F_NAME = p.FirstName 
                             and c.C_ADLINE1 = p.AddressLine1 and c.C_ADLINE2 =  p.AddressLine2 and c.C_ZIPCODE = p.PostalCode)""")
     
-    #dimCustomer.printSchema()
+    new_cols = dimCustomer.columns
+    print("New Schema")
+    print("Columns:", dimCustomer.columns, len(dimCustomer.columns))
+    dimCustomer.printSchema()
+    print()
     
+    prev_cols = spark.table("DimCustomer").columns
+    print("Current Schema")
+    print("Columns:", spark.table("DimCustomer").columns, len(spark.table("DimCustomer").columns))
+    spark.table("DimCustomer").printSchema()
+    print()
+
+    for i in new_cols:
+        if i not in prev_cols:
+            print(i, "not in prev_cols")
+
+    for i in prev_cols:
+        if i not in new_cols:
+            print(i, "not in new_cols")
+
     dimCustomer.write.mode("append").saveAsTable( "DimCustomer", mode="append")
     
     return dimCustomer
@@ -2830,7 +2848,7 @@ def load_update_dimen_trade(dbname,staging_area_folder_up1):
 
     # Create new view
     trade.createOrReplaceTempView("trade_insert")
-    trade.printSchema()
+    #trade.printSchema()
     
     dimTrade=spark.sql("""
         SELECT  INT(T_ID) as TradeID,
@@ -3049,8 +3067,7 @@ def load_update_staging_FactMarketStory(dbname, staging_area_folder_upl):
         `DM_LOW` FLOAT,
         `DM_VOL` INTEGER
     """
-    print(2)
-    print(f"{staging_area_folder_upl}/DailyMarket.txt")
+
     DailyMarket_ = spark.read.format("csv").option("delimiter", "|").schema(schema).load(f"{staging_area_folder_upl}/DailyMarket.txt")
     DailyMarket_.createOrReplaceTempView("dailymarket")
     
@@ -3351,7 +3368,7 @@ def run_historical_load(dbname, scale_factor, file_id):
 
     metrics_df = pd.DataFrame(metrics, index=[0])
     
-    metrics_df.to_csv(f"results/data/historical_load_{scale_factor}_{file_id}.csv", index=False)
+    metrics_df.to_csv(f"{os.getcwd()}/results/data/historical_load_{scale_factor}_{file_id}.csv", index=False)
     return metrics_df
 
 def run_incremental_load(dbname, scale_factor, file_id):
@@ -3394,16 +3411,15 @@ def run_incremental_load(dbname, scale_factor, file_id):
     metrics["throughput"] = (rows / get_max(end,1800))
 
     metrics_df = pd.DataFrame(metrics, index=[0])
-    metrics_df.to_csv(f"results/data/incremental_load_{scale_factor}_{file_id}.csv", index=False)
+    metrics_df.to_csv(f"{os.getcwd()}/results/data/incremental_load_{scale_factor}_{file_id}.csv", index=False)
 
     return metrics_df
 
-def run(scale_factors=["Scale6"]):
-  #"Scale3", "Scale4", "Scale5"]): 
+def run(scale_factors=["Scale3", "Scale4", "Scale5", "Scale6"]): 
     dbname = "test"
      # Options "Scale3", "Scale4", "Scale5", "Scale6"
     file_id = id_generator()
-    print(file_id)
+
     for scale_factor in scale_factors:
         metrics = {}
         hist_res = run_historical_load(dbname, scale_factor, file_id)
@@ -3411,13 +3427,14 @@ def run(scale_factors=["Scale6"]):
         
         metrics["TPC_DI_RPS"] = int(geometric_mean([hist_res["throughput"], hist_incr["throughput"]]))
         metrics_df = pd.DataFrame(metrics, index=[0])
-        metrics_df.to_csv(f"results/data/overall_stats_{scale_factor}_{file_id}.csv", index=False)
+        metrics_df.to_csv(f"{os.getcwd()}/results/data/overall_stats_{scale_factor}_{file_id}.csv", index=False)
     
         print(hist_res, hist_incr, metrics_df)
-try:
-    run()
-except Exception as e:
-    input()
+#try:
+run()
+#except Exception as e:
+#    print(e)
+#    input()
 
 
 # COMMAND ----------
