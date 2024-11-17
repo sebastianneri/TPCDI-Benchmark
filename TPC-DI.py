@@ -2421,7 +2421,7 @@ def run_historical_load(scale_factors=["Scale3"]):
         
         metrics_df = pd.DataFrame(metrics, index=[0])
 
-        metrics_df.to_csv(f"dbfs/FileStore/historical_load_{scale_factor}.csv", index=False)
+        metrics_df.to_csv(f"results/data/historical_load_{scale_factor}.csv", index=False)
 
 run_historical_load()
 
@@ -2433,7 +2433,7 @@ run_historical_load()
 # scale_factor = "Scale3"
 # client = create_gcs_client()
 # dbutils.fs.put("/FileStore/test.csv", metrics_df.to_csv())
-# # metrics_df.to_csv(f"/dbfs/Filestore/historical_load.csv")
+# # metrics_df.to_csv(f"/results/data/historical_load.csv")
 
 # COMMAND ----------
 
@@ -3351,7 +3351,7 @@ def run_historical_load(dbname, scale_factor, file_id):
 
     metrics_df = pd.DataFrame(metrics, index=[0])
     
-    metrics_df.to_csv(f"dbfs/FileStore/historical_load_{scale_factor}_{file_id}.csv", index=False)
+    metrics_df.to_csv(f"results/data/historical_load_{scale_factor}_{file_id}.csv", index=False)
     return metrics_df
 
 def run_incremental_load(dbname, scale_factor, file_id):
@@ -3394,7 +3394,7 @@ def run_incremental_load(dbname, scale_factor, file_id):
     metrics["throughput"] = (rows / get_max(end,1800))
 
     metrics_df = pd.DataFrame(metrics, index=[0])
-    metrics_df.to_csv(f"dbfs/FileStore/incremental_load_{scale_factor}_{file_id}.csv", index=False)
+    metrics_df.to_csv(f"results/data/incremental_load_{scale_factor}_{file_id}.csv", index=False)
 
     return metrics_df
 
@@ -3411,7 +3411,7 @@ def run(scale_factors=["Scale6"]):
         
         metrics["TPC_DI_RPS"] = int(geometric_mean([hist_res["throughput"], hist_incr["throughput"]]))
         metrics_df = pd.DataFrame(metrics, index=[0])
-        metrics_df.to_csv(f"dbfs/FileStore/overall_stats_{scale_factor}_{file_id}.csv", index=False)
+        metrics_df.to_csv(f"results/data/overall_stats_{scale_factor}_{file_id}.csv", index=False)
     
         print(hist_res, hist_incr, metrics_df)
 try:
