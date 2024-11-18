@@ -37,7 +37,7 @@ spark_ui_url = sc.uiWebUrl
 print(f"Spark UI is available at {spark_ui_url}")
 
 
-scale_factor = "Scale3" # Options "Scale3", "Scale4", "Scale5", "Scale6"
+scale_factor = "Scale3" # Options "Scale3", "Scale4", "Scale5"
 
 # COMMAND ----------
 
@@ -2348,9 +2348,9 @@ def load_fact_watches(dbname, staging_area_folder):
 import time
 import pandas as pd
 
-def run_historical_load(scale_factors=["Scale3", "Scale4", "Scale5", "Scale6"]):
+def run_historical_load(scale_factors=["Scale3", "Scale4", "Scale5"]):
     dbname = "test"
-     # Options "Scale3", "Scale4", "Scale5", "Scale6"
+     # Options "Scale3", "Scale4", "Scale5"
     for scale_factor in scale_factors:
         metrics = {}
         # Init DB
@@ -3415,9 +3415,9 @@ def run_incremental_load(dbname, scale_factor, file_id):
 
     return metrics_df
 
-def run(scale_factors=["Scale3", "Scale4", "Scale5", "Scale6"]): 
+def run(scale_factors=["Scale3", "Scale4", "Scale5"]): 
     dbname = "test"
-     # Options "Scale3", "Scale4", "Scale5", "Scale6"
+     # Options "Scale3", "Scale4", "Scale5"
     file_id = id_generator()
 
     for scale_factor in scale_factors:
