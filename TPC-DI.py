@@ -37,7 +37,7 @@ spark_ui_url = sc.uiWebUrl
 print(f"Spark UI is available at {spark_ui_url}")
 
 
-scale_factor = "Scale3" # Options "Scale3", "Scale4", "Scale5"
+scale_factor = "Scale3" # Options "Scale3"]):#, "Scale4", "Scale5", "Scale6"
 
 # COMMAND ----------
 
@@ -49,6 +49,9 @@ scale_factor = "Scale3" # Options "Scale3", "Scale4", "Scale5"
 
 def clean_warehouse(dbname="test"):
     spark.sql(f"DROP DATABASE IF EXISTS {dbname} CASCADE")
+    warehouse_path = os.getcwd()+'/warehouse/'
+    shutil.rmtree(warehouse_path)
+    os.makedirs(warehouse_path)
     print(f"Warehouse {dbname} deleted.")
 
 # COMMAND ----------
@@ -611,6 +614,9 @@ def create_warehouse(dbname="test"):
 
 def clean_warehouse(dbname="test"):
     spark.sql(f"DROP DATABASE IF EXISTS {dbname} CASCADE")
+    warehouse_path = os.getcwd()+'/warehouse/'
+    shutil.rmtree(warehouse_path)
+    os.makedirs(warehouse_path)
     print(f"Warehouse {dbname} deleted.")
 
 # COMMAND ----------
@@ -2206,7 +2212,7 @@ def load_fact_cash_balances(dbname, staging_area_folder):
     cash.createOrReplaceTempView("cashTrans")
     factCashBalances = spark.sql(""" 
                        Select SK_CustomerID, 
-                           AccountID, 
+                           AccountID AS SK_AccountID, 
                            SK_DateID, 
                            sum(CT_AMT) as Cash, 
                            CAST('1' as INT) as BatchID 
@@ -2348,9 +2354,9 @@ def load_fact_watches(dbname, staging_area_folder):
 import time
 import pandas as pd
 
-def run_historical_load(scale_factors=["Scale3", "Scale4", "Scale5"]):
+def run_historical_load(scale_factors=["Scale3"]):#, "Scale4", "Scale5", "Scale6"]):
     dbname = "test"
-     # Options "Scale3", "Scale4", "Scale5"
+     # Options "Scale3"]):#, "Scale4", "Scale5", "Scale6"
     for scale_factor in scale_factors:
         metrics = {}
         # Init DB
@@ -2524,12 +2530,14 @@ def load_dimen_customer(dbname, staging_area_folder_upl):
     Customers = new_customer_df.join(update_customer_df, on=['C_ID'], how='left_anti')
     
     Customers.createOrReplaceTempView("customers")
-        
+    
+    #### Added on line 2540 "ST_NAME as Status, "
     dimCustomer = spark.sql("""
                        Select 
                        CDC_DSN AS SK_CustomerID,
                        c.C_ID as CustomerID,
                        C_TAX_ID as TaxID,
+                        ST_NAME as Status, 
                        C_L_NAME as LastName,
                        C_F_NAME as FirstName,
                        C_M_NAME as MiddleInitial,
@@ -2645,28 +2653,13 @@ def load_dimen_customer(dbname, staging_area_folder_upl):
                        left join TaxRate as NAT on c.C_NAT_TX_ID = NAT.TX_ID 
                        left join TaxRate as LCL on c.C_LCL_TX_ID = LCL.TX_ID 
                        left join Prospect as p on (c.C_L_NAME = p.LastName and c.C_F_NAME = p.FirstName 
-                            and c.C_ADLINE1 = p.AddressLine1 and c.C_ADLINE2 =  p.AddressLine2 and c.C_ZIPCODE = p.PostalCode)""")
+                            and c.C_ADLINE1 = p.AddressLine1 and c.C_ADLINE2 =  p.AddressLine2 and c.C_ZIPCODE = p.PostalCode)
+                        left join StatusType on StatusType.ST_ID = c.C_ST_ID """)
     
-    new_cols = dimCustomer.columns
-    print("New Schema")
-    print("Columns:", dimCustomer.columns, len(dimCustomer.columns))
-    dimCustomer.printSchema()
-    print()
-    
-    prev_cols = spark.table("DimCustomer").columns
-    print("Current Schema")
-    print("Columns:", spark.table("DimCustomer").columns, len(spark.table("DimCustomer").columns))
-    spark.table("DimCustomer").printSchema()
-    print()
+    dimCustomer.createOrReplaceTempView("dimCustomer_stream")
 
-    for i in new_cols:
-        if i not in prev_cols:
-            print(i, "not in prev_cols")
-
-    for i in prev_cols:
-        if i not in new_cols:
-            print(i, "not in new_cols")
-
+    dimCustomer = cast_to_target_schema("dimCustomer_stream", "DimCustomer")
+     
     dimCustomer.write.mode("append").saveAsTable( "DimCustomer", mode="append")
     
     return dimCustomer
@@ -2731,6 +2724,9 @@ def load_dimen_account(dbname, staging_area_folder_upl):
 
     #dimAccount.printSchema()
     
+    dimAccount.createOrReplaceTempView("dimAccount_stream")
+    dimAccount = cast_to_target_schema("dimAccount_stream", "DimAccount")
+
     dimAccount.write.mode("append").saveAsTable( "DimAccount", mode="append")
     
     return dimAccount
@@ -2910,7 +2906,7 @@ def load_update_fact_cash_balances(dbname, staging_area_folder_upl):
     cash.createOrReplaceTempView("cashTrans")
     factCashBalances = spark.sql(""" 
                        Select SK_CustomerID, 
-                           AccountID, 
+                           AccountID AS SK_AccountID, 
                            SK_DateID, 
                            sum(CT_AMT) as Cash, 
                            CAST('2' as INT) as BatchID 
@@ -3181,7 +3177,10 @@ def get_marketingnameplate(row):
 
 def load_update_staging_Prospect(dbname, staging_area_folder_upl):
     spark.sql(f"USE {dbname}")
-    spark.sql("""DELETE FROM Prospect """)
+    spark.sql("""DROP TABLE Prospect """)
+
+    create_prospect_table(dbname)
+
     schema = """
         `AgencyID` String,
         `LastName` String,
@@ -3258,16 +3257,54 @@ def load_update_staging_Prospect(dbname, staging_area_folder_upl):
     """)
     Prospect_.createOrReplaceTempView("Prospect_")
     
+    print("Prospect_")
+    Prospect_.printSchema()
+    print()
+    print("Prospect")
+    spark.table("Prospect").printSchema()
+
     spark.sql("""
-        MERGE INTO Prospect
-        USING (SELECT * FROM Prospect_) AS NP
-        ON Prospect.AgencyID = NP.AgencyID
-        WHEN MATCHED THEN
-            UPDATE SET *
-        WHEN NOT MATCHED THEN
-            INSERT *
+                CREATE OR REPLACE TEMP VIEW CombinedProspect AS
+                SELECT
+                    COALESCE(p.AgencyID, np.AgencyID) AS AgencyID,
+                    COALESCE(p.BatchID, np.BatchID) AS BatchID,
+                    COALESCE(p.SK_DateID, np.SK_DateID) AS SK_RecordDateID,
+                    COALESCE(p.SK_DateID, np.SK_DateID) AS SK_UpdateDateID,
+                    COALESCE(np.LastName, p.LastName) AS LastName,
+                    COALESCE(np.FirstName, p.FirstName) AS FirstName,
+                    COALESCE(np.MiddleInitial, p.MiddleInitial) AS MiddleInitial,
+                    COALESCE(np.Gender, p.Gender) AS Gender,
+                    COALESCE(np.AddressLine1, p.AddressLine1) AS AddressLine1,
+                    COALESCE(np.AddressLine2, p.AddressLine2) AS AddressLine2,
+                    COALESCE(np.PostalCode, p.PostalCode) AS PostalCode,
+                    COALESCE(np.City, p.City) AS City,
+                    COALESCE(np.State, p.State) AS State,
+                    COALESCE(np.Country, p.Country) AS Country,
+                    COALESCE(np.Phone, p.Phone) AS Phone,
+                    COALESCE(np.Income, p.Income) AS Income,
+                    COALESCE(np.NumberCars, p.NumberCars) AS NumberCars,
+                    COALESCE(np.NumberChildren, p.NumberChildren) AS NumberChildren,
+                    COALESCE(np.MaritalStatus, p.MaritalStatus) AS MaritalStatus,
+                    COALESCE(np.Age, p.Age) AS Age,
+                    COALESCE(np.CreditRating, p.CreditRating) AS CreditRating,
+                    COALESCE(np.OwnOrRentFlag, p.OwnOrRentFlag) AS OwnOrRentFlag,
+                    COALESCE(np.Employer, p.Employer) AS Employer,
+                    COALESCE(np.NumberCreditCards, p.NumberCreditCards) AS NumberCreditCards,
+                    COALESCE(np.NetWorth, p.NetWorth) AS NetWorth,
+                    COALESCE(np.MarketingNameplate, p.MarketingNameplate) AS MarketingNameplate
+                FROM
+                    Prospect p
+                FULL OUTER JOIN 
+                    Prospect_ np
+                ON 
+                    p.AgencyID = np.AgencyID;
     """)
-    
+
+    spark.sql("""
+            INSERT OVERWRITE TABLE Prospect
+            SELECT * FROM CombinedProspect;
+    """)
+
     return spark.sql("""
         SELECT * FROM Prospect WHERE BatchID = 2
     """)
@@ -3374,6 +3411,9 @@ def run_historical_load(dbname, scale_factor, file_id):
 def run_incremental_load(dbname, scale_factor, file_id):
     metrics = {}
 
+    clean_warehouse(dbname)
+    create_warehouse(dbname)
+
     staging_area_folder = f"{os.getcwd()}/data/{scale_factor}/Batch2"
 
     # Run incremental update
@@ -3415,9 +3455,9 @@ def run_incremental_load(dbname, scale_factor, file_id):
 
     return metrics_df
 
-def run(scale_factors=["Scale3", "Scale4", "Scale5"]): 
+def run(scale_factors=["Scale3"]):#, "Scale4", "Scale5", "Scale6"]): 
     dbname = "test"
-     # Options "Scale3", "Scale4", "Scale5"
+     # Options "Scale3"]):#, "Scale4", "Scale5", "Scale6"
     file_id = id_generator()
 
     for scale_factor in scale_factors:
