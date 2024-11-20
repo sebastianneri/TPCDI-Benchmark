@@ -3257,6 +3257,8 @@ def load_update_staging_Prospect(dbname, staging_area_folder_upl):
     """)
     Prospect_.createOrReplaceTempView("Prospect_")
     
+    cast_to_target_schema("Prospect_", "Prospect").createOrReplaceTempView("Prospect_")
+
     print("Prospect_")
     Prospect_.printSchema()
     print()
@@ -3268,8 +3270,9 @@ def load_update_staging_Prospect(dbname, staging_area_folder_upl):
                 SELECT
                     COALESCE(p.AgencyID, np.AgencyID) AS AgencyID,
                     COALESCE(p.BatchID, np.BatchID) AS BatchID,
-                    COALESCE(p.SK_DateID, np.SK_DateID) AS SK_RecordDateID,
-                    COALESCE(p.SK_DateID, np.SK_DateID) AS SK_UpdateDateID,
+                    COALESCE(p.IsCustomer, np.IsCustomer) AS IsCustomer,
+                    COALESCE(p.SK_RecordDateID, np.SK_RecordDateID) AS SK_RecordDateID,
+                    COALESCE(p.SK_UpdateDateID, np.SK_UpdateDateID) AS SK_UpdateDateID,
                     COALESCE(np.LastName, p.LastName) AS LastName,
                     COALESCE(np.FirstName, p.FirstName) AS FirstName,
                     COALESCE(np.MiddleInitial, p.MiddleInitial) AS MiddleInitial,
