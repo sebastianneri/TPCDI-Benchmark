@@ -3256,23 +3256,15 @@ def load_update_staging_Prospect(dbname, staging_area_folder_upl):
         AND upper(p.PostalCode) = upper(dc.PostalCode)
     """)
     Prospect_.createOrReplaceTempView("Prospect_")
-    
-    cast_to_target_schema("Prospect_", "Prospect").createOrReplaceTempView("Prospect_")
 
-    print("Prospect_")
-    Prospect_.printSchema()
-    print()
-    print("Prospect")
-    spark.table("Prospect").printSchema()
-
-    spark.sql("""
-                CREATE OR REPLACE TEMP VIEW CombinedProspect AS
+    combined_prospect = spark.sql("""
+                CREATE TABLE CombinedProspect AS
                 SELECT
                     COALESCE(p.AgencyID, np.AgencyID) AS AgencyID,
+                    CAST(COALESCE(p.SK_RecordDateID, np.SK_RecordDateID) AS INT) AS SK_RecordDateID,
+                    CAST(COALESCE(p.SK_UpdateDateID, np.SK_UpdateDateID) AS INT) AS SK_UpdateDateID,
                     COALESCE(p.BatchID, np.BatchID) AS BatchID,
                     COALESCE(p.IsCustomer, np.IsCustomer) AS IsCustomer,
-                    COALESCE(p.SK_RecordDateID, np.SK_RecordDateID) AS SK_RecordDateID,
-                    COALESCE(p.SK_UpdateDateID, np.SK_UpdateDateID) AS SK_UpdateDateID,
                     COALESCE(np.LastName, p.LastName) AS LastName,
                     COALESCE(np.FirstName, p.FirstName) AS FirstName,
                     COALESCE(np.MiddleInitial, p.MiddleInitial) AS MiddleInitial,
@@ -3302,11 +3294,13 @@ def load_update_staging_Prospect(dbname, staging_area_folder_upl):
                 ON 
                     p.AgencyID = np.AgencyID;
     """)
-
+    
     spark.sql("""
             INSERT OVERWRITE TABLE Prospect
-            SELECT * FROM CombinedProspect;
-    """)
+            SELECT * FROM CombinedProspect
+              """)
+
+    spark.sql("""DROP TABLE CombinedProspect""") 
 
     return spark.sql("""
         SELECT * FROM Prospect WHERE BatchID = 2
@@ -3438,7 +3432,6 @@ def run_incremental_load(dbname, scale_factor, file_id):
 
     factmarkethistory_count = factmarkethistory.count()
     prospect_count = prospect.count()
-    industry_count = industry.count()
     dimtrade_count = dimtrade.count()
     factcashbalance_count = factcashbalance.count()
     holding_count = holding.count()
@@ -3447,7 +3440,7 @@ def run_incremental_load(dbname, scale_factor, file_id):
     account_count = account.count()
 
     # Sum the individual counts
-    rows = factmarkethistory_count + prospect_count + industry_count + dimtrade_count + factcashbalance_count + holding_count + watch_count + customer_count + account_count
+    rows = factmarkethistory_count + prospect_count + dimtrade_count + factcashbalance_count + holding_count + watch_count + customer_count + account_count
 
 
     metrics["rows"] = rows
