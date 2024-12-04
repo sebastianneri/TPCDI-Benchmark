@@ -48,298 +48,48 @@ scale_factor = "Scale3" # Options "Scale3"]):#, "Scale4", "Scale5", "Scale6"
 
 
 def clean_warehouse(dbname="test"):
-    spark.sql(f"DROP DATABASE IF EXISTS {dbname} CASCADE")
-    warehouse_path = os.getcwd()+'/warehouse/'
-    shutil.rmtree(warehouse_path)
-    os.makedirs(warehouse_path)
-    print(f"Warehouse {dbname} deleted.")
+    pass
 
-# COMMAND ----------
 
-# MAGIC %pip install google-cloud-storage
-# MAGIC %pip install fsspec
-# MAGIC %pip install gcsfs
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC 
-# MAGIC #Create Data Warehouse
-# MAGIC ### Create Dims
-
-# COMMAND ----------
 
 def cast_to_target_schema(source_table: str, target_table: str):
-    # Load source and target DataFrames
-    source_df = spark.table(source_table)
-    target_df = spark.table(target_table)
-
-    # Get the schema of the target table
-    target_schema = target_df.schema
-
-    # Create a list to hold columns, casting only the matching columns
-    casted_columns = []
-
-    for column in source_df.columns:
-        if column in target_df.columns:
-            # Get the target data type for matching columns
-            target_dtype = target_schema[column].dataType
-            # Cast to target data type and add to the list
-            casted_columns.append(col(column).cast(target_dtype).alias(column))
-        else:
-            # Keep the original column if it does not exist in target schema
-            casted_columns.append(col(column))
-
-    # Select all columns from the source with necessary casts applied
-    casted_df = source_df.select(*casted_columns)
-
-    return casted_df
+    pass
 
 
 def create_dim_account(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS DimAccount(
-            SK_AccountID INTEGER,
-            AccountID BIGINT,
-            SK_BrokerID BIGINT,
-            SK_CustomerID BIGINT,
-            Status CHAR(10),
-            AccountDesc CHAR(50),
-            TaxStatus INTEGER,
-            IsCurrent BOOLEAN,
-            BatchID CHAR(14),
-            EffectiveDate DATE,
-            EndDate DATE
-        )
-    """
-    )
-    print("Created dim account.")
+    pass
 
 
 def create_dim_broker(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS DimBroker(
-            SK_BrokerID INTEGER,
-            BrokerID BIGINT,
-            ManagerID BIGINT,
-            FirstName CHAR(50),
-            LastName CHAR(50),
-            MiddleInitial CHAR(1),
-            Branch CHAR(50),
-            Office CHAR(50),
-            Phone CHAR(14),
-            IsCurrent BOOLEAN,
-            BatchID INTEGER,
-            EffectiveDate DATE,
-            EndDate DATE
-        )
-    """
-    )
-    print("Created dim broker.")
+    pass
 
 
 def create_dim_company(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS DimCompany(
-            SK_CompanyID BIGINT,
-            CompanyID BIGINT,
-            Status CHAR(10),
-            Name CHAR(60),
-            Industry CHAR(50),
-            SPrating CHAR(4),
-            isLowGrade BOOLEAN,
-            CEO CHAR(100),
-            AddressLine1 CHAR(80),
-            AddressLine2 CHAR(80),
-            PostalCode CHAR(12),
-            City CHAR(25),
-            StateProv CHAR(20),
-            Country CHAR(24),
-            Description CHAR(150),
-            FoundingDate DATE,
-            IsCurrent BOOLEAN,
-            BatchID INTEGER,
-            EffectiveDate DATE,
-            EndDate DATE
-        )
-    """
-    )
-    print("Created dim company.")
+    pass
 
 
 def create_dim_customer(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS DimCustomer(
-            SK_CustomerID BIGINT,
-            CustomerID BIGINT,
-            TaxID CHAR(20),
-            Status CHAR(10),
-            LastName CHAR(30),
-            FirstName CHAR(30),
-            MiddleInitial CHAR(1),
-            Gender CHAR(1),
-            Tier INTEGER,
-            DOB DATE,
-            AddressLine1 CHAR(80),
-            AddressLine2 CHAR(84),
-            PostalCode CHAR(12),
-            City CHAR(25),
-            StateProv CHAR(20),
-            Country CHAR(24),
-            Phone1 CHAR(30),
-            Phone2 CHAR(30),
-            Phone3 CHAR(30),
-            Email1 CHAR(50),
-            Email2 CHAR(50),
-            NationalTaxRateDesc CHAR(50),
-            NationalTaxRate INTEGER,
-            LocalTaxRateDesc CHAR(50),
-            LocalTaxRate INTEGER,
-            AgencyID CHAR(30),
-            CreditRating INTEGER,
-            NetWorth FLOAT,
-            MarketingNamePlate CHAR(100),
-            IsCurrent BOOLEAN,
-            BatchID INTEGER,
-            EffectiveDate DATE,
-            EndDate DATE
-        )
-    """
-    )
-    print("Created dim customer.")
+    pass
 
 
 def create_dim_date(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS DimDate(
-            SK_DateID INTEGER,
-            DateValue DATE,
-            DateDesc CHAR(20),
-            CalendarYearID INTEGER,
-            CalendarYearDesc CHAR(20),
-            CalendarQtrID INTEGER,
-            CalendarQtrDesc CHAR(20),
-            CalendarMonthID INTEGER,
-            CalendarMonthDesc CHAR(20),
-            CalendarWeekID INTEGER,
-            CalendarWeekDesc CHAR(20),
-            DayOfWeekNum TINYINT,
-            DayOfWeekDesc CHAR(10),
-            FiscalYearID INTEGER,
-            FiscalYearDesc CHAR(20),
-            FiscalQtrID INTEGER,
-            FiscalQtrDesc CHAR(20),
-            HolidayFlag BOOLEAN
-        )
-    """
-    )
-    print("Created dim date.")
+    pass
 
 
 def create_dim_security(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS DimSecurity(
-            SK_SecurityID BIGINT,
-            Symbol CHAR(15),
-            Issue CHAR(6),
-            Status CHAR(10),
-            Name CHAR(70),
-            ExchangeID CHAR(6),
-            SK_CompanyID BIGINT,
-            SharesOutstanding BIGINT,
-            FirstTrade DATE,
-            FirstTradeOnExchange DATE,
-            Dividend FLOAT,
-            IsCurrent BOOLEAN,
-            BatchID INTEGER,
-            EffectiveDate DATE,
-            EndDate DATE
-        )
-    """
-    )
-    print("Created dim security.")
+    pass
 
 
 def create_dim_time(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS DimTime(
-            SK_TimeID INTEGER,
-            TimeValue TIMESTAMP,
-            HourID INTEGER,
-            HourDesc CHAR(20),
-            MinuteID INTEGER,
-            MinuteDesc CHAR(20),
-            SecondID INTEGER,
-            SecondDesc CHAR(20),
-            MarketHoursFlag BOOLEAN,
-            OfficeHoursFlag BOOLEAN
-        )
-    """
-    )
-    print("Created dim time.")
+    pass
 
 
 def create_dim_trade(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS DimTrade(
-            TradeID INTEGER,
-            SK_BrokerID INTEGER,
-            SK_CreateDateID INTEGER,
-            SK_CreateTimeID INTEGER,
-            SK_CloseDateID INTEGER,
-            SK_CloseTimeID INTEGER,
-            Status CHAR(10),
-            Type CHAR(12),
-            CashFlag BOOLEAN,
-            SK_SecurityID INTEGER,
-            SK_CompanyID INTEGER,
-            Quantity FLOAT,
-            BidPrice FLOAT,
-            SK_CustomerID INTEGER,
-            SK_AccountID INTEGER,
-            ExecutedBy CHAR(64),
-            TradePrice FLOAT,
-            Fee FLOAT,
-            Comission FLOAT,
-            Tax FLOAT,
-            BatchID INTEGER
-        )
-    """
-    )
-    print("Created dim trades.")
+    pass
 
 
 def create_dimessages_table(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS DIMessages(
-            MessageDateAndTime TIMESTAMP,
-            BatchID INTEGER,
-            MessageSource CHAR(30),
-            MessageText CHAR(50),
-            MessageType CHAR(12),
-            MessageData CHAR(100)
-        )
-    """
-    )
-    print("Created dim messages.")
+    pass
 
 
 def create_dims(dbname):
@@ -353,82 +103,21 @@ def create_dims(dbname):
     create_dim_trade(dbname)
     create_dimessages_table(dbname)
 
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Create Facts
-
-# COMMAND ----------
 
 def create_fact_cash_balances(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql("""
-        CREATE TABLE IF NOT EXISTS FactCashBalances(
-            SK_CustomerID INTEGER,
-            SK_AccountID INTEGER,
-            SK_DateID INTEGER,
-            Cash FLOAT,
-            BatchID INTEGER
-        )
-    """)
-    print("Created fact cash balances")
+    pass
 
 
 def create_fact_holdings(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql("""
-        CREATE TABLE IF NOT EXISTS FactHoldings(
-            TradeID INTEGER,
-            CurrentTradeID INTEGER,
-            SK_CustomerID INTEGER,
-            SK_AccountID INTEGER,
-            SK_SecurityID INTEGER,
-            SK_CompanyID INTEGER,
-            SK_DateID INTEGER,
-            SK_TimeID INTEGER,
-            CurrentPrice FLOAT,
-            CurrentHolding INTEGER,
-            BatchID INTEGER
-        )
-    """)
-    print("Created fact holdings")
+    pass
 
 
 def create_fact_market_history(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql("""
-        CREATE TABLE IF NOT EXISTS FactMarketHistory(
-            SK_SecurityID INTEGER,
-            SK_CompanyID INTEGER,
-            SK_DateID INTEGER,
-            PERatio FLOAT,
-            Yield FLOAT,
-            FiftyTwoWeekHigh FLOAT,
-            SK_FiftyTwoWeekHighDate INTEGER,
-            FiftyTwoWeekLow FLOAT,
-            SK_FiftyTwoWeekLowDate INTEGER,
-            ClosePrice FLOAT,
-            DayHigh FLOAT,
-            DayLow FLOAT,
-            Volume INTEGER,
-            BatchID INTEGER
-        )
-    """)
-    print("Created fact market history")
+    pass
 
 
 def create_fact_watches(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql("""
-        CREATE TABLE IF NOT EXISTS FactWatches(
-            SK_CustomerID BIGINT,
-            SK_SecurityID BIGINT,
-            SK_DateID_DatePlaced BIGINT,
-            SK_DateID_DateRemoved BIGINT,
-            BatchID INTEGER
-        )
-    """)
-    print("Created fact watches")
+    pass
 
 
 def create_facts(dbname):
@@ -437,153 +126,32 @@ def create_facts(dbname):
     create_fact_market_history(dbname)
     create_fact_watches(dbname)
 
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Create Other Tables
-
-# COMMAND ----------
 
 def create_industry_table(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS Industry( 
-            IN_ID CHAR(2),
-            IN_NAME CHAR(50),
-            IN_SC_ID CHAR(4)
-        )
-    """
-    )
-    print("Created table industry.")
+    pass
 
 def create_financial_table(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS Financial( 
-           SK_CompanyID BIGINT,
-           FI_YEAR Integer,
-           FI_QTR Integer,
-           FI_QTR_START_DATE DATE,
-           FI_REVENUE Float,
-           FI_NET_EARN Float,
-           FI_BASIC_EPS Float,
-           FI_DILUT_EPS  Float,
-           FI_MARGIN Float,
-           FI_INVENTORY Float,
-           FI_ASSETS Float,
-           FI_LIABILITY Float,
-           FI_OUT_BASIC Float,
-           FI_OUT_DILUT Float             
-        )
-    """
-    )
-    print("Created table Finacial.")
+    pass
 
 def create_prospect_table(dbname):
-    spark.sql(f"USE {dbname}")
-#     spark.sql("""
-#         DROP TABLE Prospect
-#     """)
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS Prospect( 
-           AgencyID char(30),
-           SK_RecordDateID Integer,
-           SK_UpdateDateID Integer,
-           BatchID Integer,
-           IsCustomer Boolean,
-           LastName Char(30),
-           FirstName Char(30),
-           MiddleInitial Char(1),
-           Gender Char(1),
-           AddressLine1 Char(80),
-           AddressLine2 Char(80),
-           PostalCode Char(12),
-           City Char(25),
-           State Char(20),
-           Country Char(24),
-           Phone Char(30), 
-           Income Char(9),
-           NumberCars Integer,
-           NumberChildren Integer,
-           MaritalStatus Char(1),
-           Age Integer,
-           CreditRating Integer,
-           OwnOrRentFlag Char(1),  
-           Employer Char(30),
-           NumberCreditCards Integer,
-           NetWorth Integer, 
-           MarketingNameplate Char(100)
-                       
-        )
-    """
-    )
-    print("Created table Prospect.")
-# create_prospect_table("test")
-
+    pass
 
 def create_status_type_table(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS StatusType( 
-           ST_ID CHAR(4),
-           ST_NAME CHAR(10)
-        )
-    """
-    )
-    print("Created table StatusType.")
+    pass
     
 
 
 def create_taxrate_table(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS TaxRate( 
-           TX_ID CHAR(4),
-           TX_NAME CHAR(50),
-           TX_RATE Float
-        )
-    """
-    )
-    print("Created table TaxRate.")
+    pass
     
 
 
 def create_tradetype_table(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS TradeType( 
-           TT_ID CHAR(3),
-           TT_NAME CHAR(12),
-           TT_IS_SELL Integer,
-           TT_IS_MRKT Integer
-        )
-    """
-    )
-    print("Created table TradeType.")
+    pass
     
 
-
 def create_audit_table(dbname):
-    spark.sql(f"USE {dbname}")
-    spark.sql(
-        """
-        CREATE TABLE IF NOT EXISTS Audit( 
-           DataSet CHAR(20),
-           BatchID Integer,
-           DATE Date,
-           Attribute CHAR(50),
-           Value float,
-           DValue float 
-        )
-    """
-    )
-    print("Created table Audit.")
+    pass
 
 
 
@@ -596,7 +164,7 @@ def create_other_tables(dbname):
     create_tradetype_table(dbname)
     create_audit_table(dbname)
 
-# COMMAND ----------
+
 
 def create_warehouse(dbname="test"):
     spark.sql(f"CREATE DATABASE IF NOT EXISTS {dbname}")
@@ -604,286 +172,41 @@ def create_warehouse(dbname="test"):
     create_facts(dbname)
     create_other_tables(dbname)
 
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC 
-# MAGIC ## Execute Step 1
-
-# COMMAND ----------
 
 def clean_warehouse(dbname="test"):
-    spark.sql(f"DROP DATABASE IF EXISTS {dbname} CASCADE")
-    warehouse_path = os.getcwd()+'/warehouse/'
-    shutil.rmtree(warehouse_path)
-    os.makedirs(warehouse_path)
-    print(f"Warehouse {dbname} deleted.")
-
-# COMMAND ----------
+    pass
 
 clean_warehouse("test")
 
-# COMMAND ----------
+
 
 create_warehouse()
 
-# COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Step 2: Historical Load
-# MAGIC 
-# MAGIC ### This step:
-# MAGIC 
-# MAGIC - populates the data warehouse
-# MAGIC - applies transformations described in clause 4.5 of the tpc-di manual (batch1 folder on the generated data)
-# MAGIC - performs validations based on clause 7.4
-# MAGIC - upon completion of the validation stage, a phase completion record is written into DIMessages table
-# MAGIC - this step must be timed
-# MAGIC 
-# MAGIC 
-# MAGIC 
-# MAGIC ### Load Dim Date and Dim Time
-
-# COMMAND ----------
-
-# General variables setup
-# staging_area_folder = f"gs://tpcdi-with-spark-bdma/TPCDI_Data/TPCDI_Data/{scale_factor}/Batch1/"
-
-#from google.cloud import storage
-#from google.oauth2 import service_account
 
 def create_gcs_client():
-    credentials_dict = {
-      "type": "service_account",
-      "project_id": "bdma-371020",
-      "private_key_id": "",
-      "private_key": "",
-      "client_email": "tpcdi-databricks-bdma@bdma-371020.iam.gserviceaccount.com",
-      "client_id": "103179657336858348005",
-      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-      "token_uri": "https://oauth2.googleapis.com/token",
-      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-      "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/tpcdi-databricks-bdma%40bdma-371020.iam.gserviceaccount.com"
-    }
-    credentials = service_account.Credentials.from_service_account_info(credentials_dict)
-    client = storage.Client(credentials=credentials)
-    return client
+    pass
 
-# COMMAND ----------
 
-# General variables setup
 def load_dim_date(dbname, staging_area_folder):
-    spark.sql(f"USE {dbname}")
-    schema = """
-            `SK_DateID` INTEGER,
-            `DateValue` DATE,
-            `DateDesc` STRING,
-            `CalendarYearID` INTEGER,
-            `CalendarYearDesc` STRING,
-            `CalendarQtrID` INTEGER,
-            `CalendarQtrDesc` STRING,
-            `CalendarMonthID` INTEGER,
-            `CalendarMonthDesc` STRING,
-            `CalendarWeekID` INTEGER,
-            `CalendarWeekDesc` STRING,
-            `DayOfWeekNum` INTEGER,
-            `DayOfWeekDesc` STRING,
-            `FiscalYearID` INTEGER,
-            `FiscalYearDesc` STRING,
-            `FiscalQtrID` INTEGER,
-            `FiscalQtrDesc` STRING,
-            `HolidayFlag` BOOLEAN
-    """
-    dates = (
-        spark.read.format("csv")
-        .option("delimiter", "|")
-        .schema(schema)
-        .load(f"{staging_area_folder}/Date.txt")
-    )
-    dates.write.option("overwriteSchema", "true").saveAsTable(
-        "DimDate", mode="overwrite"
-    )
-    return dates
-# dates = load_dim_date("test")
-# dates.limit(3).toPandas()
+    pass
 
-# COMMAND ----------
+
 
 def load_dim_time(dbname, staging_area_folder):
-    spark.sql(f"USE {dbname}")
-    schema = """
-            `SK_TimeID` INTEGER,
-            `TimeValue` TIMESTAMP,
-            `HourID` INTEGER,
-            `HourDesc` STRING,
-            `MinuteID` INTEGER,
-            `MinuteDesc` STRING,
-            `SecondID` INTEGER,
-            `SecondDesc` STRING,
-            `MarketHoursFlag` BOOLEAN,
-            `OfficeHoursFlag` BOOLEAN
-    """
-    times = (
-        spark.read.format("csv")
-        .option("delimiter", "|")
-        .schema(schema)
-        .load(f"{staging_area_folder}/Time.txt")
-    )
-    times.write.option("overwriteSchema", "true").saveAsTable(
-        "DimTime", mode="overwrite"
-    )
-    return times
-# times = load_dim_time("test")
-# times.limit(3).toPandas()
+    pass
 
-# COMMAND ----------
-
-#Load tax rate
 
 def load_tax_rate(dbname, staging_area_folder):
-    spark.sql(f"USE {dbname}")
-    schema = """
-        `TX_ID` String,
-        `TX_NAME` String,
-        `TX_RATE` Float
-
-    """
-    Tax_Rate = (
-        spark.read.format("csv")
-        .option("delimiter", "|")
-        .schema(schema)
-        .load(f"{staging_area_folder}/TaxRate.txt")
-    )
-    Tax_Rate.createOrReplaceTempView("TaxRateView")
-    
-    spark.sql(
-    """
-        INSERT INTO TaxRate(TX_ID, TX_NAME,TX_RATE)
-        SELECT TX_ID, 
-               TX_NAME as NationalTaxRateDesc, 
-               TX_RATE as NationalTaxRate 
-        FROM TaxRateView
-    """
-    )
-    return Tax_Rate
-
-
-# Tax_Rate=load_tax_rate("test")
-# Tax_Rate.limit(3).toPandas()
-
-# COMMAND ----------
-
-# MAGIC %md 
-# MAGIC ### HR File (DimBroker)
-
-# COMMAND ----------
+    pass
 
 from pyspark.sql.functions import expr
-"""
-Records where EmployeeJobCode is not 314 are not broker records, and are ignored. The remaining steps are for records where the job code is 314.
-- BrokerID, ManagerID, FirstName, LastName, MiddleInitial, Branch, Office and Phone are obtained from these fields of the HR.csv file: EmployeeID, ManagerID, EmployeeFirstName, EmployeeLastName, EmployeeMI, EmployeeBranch, EmployeeOffice and EmployeePhone.
-- SK_BrokerID is set appropriately for new records as described in section 4.4.1.3.
-- IsCurrent is set to true
-- EffectiveDate is set to the earliest date in the DimDate table and EndDate is set to 9999-12-31.
-- BatchID is set as described in section 4.4.2
-            SK_BrokerID INTEGER GENERATED ALWAYS AS IDENTITY,
-            BrokerID BIGINT,
-            ManagerID BIGINT,
-            FirstName CHAR(50),
-            LastName CHAR(50),
-            MiddleInitial CHAR(1),
-            Branch CHAR(50),
-            Office CHAR(50),
-            Phone CHAR(14),
-            IsCurrent BOOLEAN,
-            BatchID INTEGER,
-            EffectiveDate DATE,
-            EndDate DATE
-"""
 
 
 def load_staging_hr_file(dbname, staging_area_folder):
-    spark.sql(f"USE {dbname}")
-    schema = """
-            `EmployeeID` INTEGER,
-            `ManagerID`  INTEGER,
-            `EmployeeFirstName` STRING,
-            `EmployeeLastName` STRING,
-            `EmployeeMI` STRING,
-            `EmployeeJobCode` INTEGER,
-            `EmployeeBranch` STRING,
-            `EmployeeOffice` STRING,
-            `EmployeePhone` STRING
-            
-    """
-    brokers = (
-        spark.read.format("csv")
-        .option("delimiter", ",")
-        .schema(schema)
-        .load(f"{staging_area_folder}/HR.csv")
-        .where("EmployeeJobCode = 314")
-    )
-    # Save staging data into temp view
-    brokers.createOrReplaceTempView("hr")
-    # Copy data into warehouse table
-    
-    spark.sql("""
-            SELECT 
-                monotonically_increasing_id() AS SK_BrokerID,
-                EmployeeID AS BrokerID,
-                ManagerID,
-                EmployeeFirstName AS FirstName,
-                EmployeeLastName AS LastName,
-                EmployeeMI AS MiddleInitial,
-                EmployeeBranch AS Branch,
-                EmployeeOffice AS Office,
-                EmployeePhone AS Phone,
-                (SELECT TRUE) AS IsCurrent,
-                (SELECT 1) AS BatchID,
-                (SELECT MIN(DateValue) FROM DimDate) AS EffectiveDate,
-                TO_DATE('9999-12-31') AS EndDate
-            FROM hr
-    """).createOrReplaceTempView("DimBrokerNoUpdate")
-    
-    spark.sql("""
-        SELECT 
-            *, 
-            MAX(SK_BrokerID) OVER (PARTITION BY BrokerID) AS LAST_SK, 
-            LAG(EffectiveDate, -1) IGNORE NULLS OVER (PARTITION BY BrokerID ORDER BY EffectiveDate) 
-                AS NewEndDate
-        FROM DimBrokerNoUpdate
-    """) \
-    .withColumn("IsCurrent", expr("CASE WHEN LAST_SK != SK_BrokerID THEN False ELSE TRUE END")) \
-    .withColumn(
-        "EndDate", 
-        expr("CASE WHEN LAST_SK != SK_BrokerID THEN NewEndDate ELSE EndDate END")) \
-    .drop("LAST_SK", "NewEndDate") \
-    .createOrReplaceTempView("DimBrokerUpdated")
-    
-    spark.sql(
-        """
-        INSERT INTO DimBroker(
-            SK_BrokerID, BrokerID, ManagerID, FirstName, LastName, MiddleInitial, Branch, Office, Phone, IsCurrent, BatchID, EffectiveDate, EndDate)
-        SELECT * FROM DimBrokerUpdated
-    """
-    )
-    return spark.sql("SELECT * FROM DimBroker")
+    pass
 
-# spark.sql("DELETE FROM DimBroker")
-# brokers = load_staging_hr_file("test")
-# brokers.limit(10).toPandas()
 
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Finwire Files 
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC #### Columnarize UDF Function
-
-# COMMAND ----------
 
 from pyspark.sql.functions import col, udf, explode, map_keys, array, pandas_udf
 from pyspark.sql.types import StringType, Row
@@ -891,8 +214,7 @@ import pandas as pd
 
 @pandas_udf(StringType())
 def extract_finwire_type(finwire_str):
-    finwire_type = finwire_str.str[15:18]
-    return finwire_type
+    pass
 
 @pandas_udf("""
             `PTS` string, `RecType` string, `CompanyName` string, `CIK` string, 
@@ -901,27 +223,7 @@ def extract_finwire_type(finwire_str):
             `StateProvince` string, `Country` string, `CEOname` string, `Description` string
         """)
 def columnarize_finwire_data_cmp(finwire_str):
-    row = pd.DataFrame(columns=['PTS', 'RecType', 'CompanyName', 'CIK', 'Status',
-            'IndustryID', 'SPrating', 'FoundingDate',
-            'AddrLine1', 'AddrLine2', 'PostalCode', 'City',
-            'StateProvince', 'Country', 'CEOname', 'Description'])
-    row['PTS'] = finwire_str.str[0:15]
-    row['RecType'] = finwire_str.str[15:18]
-    row['CompanyName'] = finwire_str.str[18:78]
-    row['CIK'] = finwire_str.str[78:88]
-    row['Status'] = finwire_str.str[88:92]
-    row['IndustryID'] = finwire_str.str[92:94]
-    row['SDPrating'] = finwire_str.str[94:98]
-    row['FoundingDate'] = finwire_str.str[98:106]
-    row['AddrLine1'] = finwire_str.str[106:186]
-    row['AddrLine2'] = finwire_str.str[186:266]
-    row['PostalCode'] = finwire_str.str[266:278]
-    row['City'] = finwire_str.str[278:303]
-    row['StateProvince'] = finwire_str.str[303:323]
-    row['Country'] = finwire_str.str[323:347]
-    row['CEOname'] = finwire_str.str[347:393]
-    row['Description'] = finwire_str.str[393:]
-    return row
+    pass
 
 
 @pandas_udf("""
@@ -930,22 +232,7 @@ def columnarize_finwire_data_cmp(finwire_str):
             `FirstTradeExchg` string, `Dividend` string, `CoNameOrCIK` string
 """)
 def columnarize_finwire_data_sec(finwire_str):
-    row = pd.DataFrame(columns=['PTS', 'RecType', 'Symbol', 'IssueType', 'Status', 'Name', 'ExID',
-                                'ShOut', 'FirstTradeDate', 'FirstTradeExchg', 'Dividend',
-                                'CoNameOrCIK'])
-    row['PTS'] = finwire_str.str[0:15]
-    row['RecType'] = finwire_str.str[15:18]
-    row['Symbol'] = finwire_str.str[18:33]
-    row['IssueType'] = finwire_str.str[33:39]
-    row['Status'] = finwire_str.str[39:43]
-    row['Name'] = finwire_str.str[43:113]
-    row['ExID'] = finwire_str.str[113:119]
-    row['ShOut'] = finwire_str.str[119:132]
-    row['FirstTradeDate'] = finwire_str.str[132:140]
-    row['FirstTradeExchg'] = finwire_str.str[140:148]
-    row['Dividend'] = finwire_str.str[148:160]
-    row['CoNameOrCIK'] = finwire_str.str[160:]
-    return row
+    pass
 
 @pandas_udf("""
             `PTS` string, `RecType` string , `Year` string , `Quarter` string, `QtrStartDate` string,
@@ -955,533 +242,57 @@ def columnarize_finwire_data_sec(finwire_str):
             `Liabilities` string, `ShOut` string, `DilutedShOut` string, `CoNameOrCIK` string
 """)
 def columnarize_finwire_data_fin(finwire_str):
-    row = pd.DataFrame(columns=['PTS', 'RecType', 'Year', 'Quarter', 'QtrStartDate', 'PostingDate', 
-                                'Revenue', 'Earnings', 'EPS', 'DilutedEPS', 'Margin', 'Inventory', 
-                                'Assets', 'Liabilities', 'ShOut', 'DilutedShOut', 'CoNameOrCIK'])
-    row['PTS'] = finwire_str.str[0:15]
-    row['RecType'] = finwire_str.str[15:18]
-    row['Year'] = finwire_str.str[18:22]
-    row['Quarter'] = finwire_str.str[22:23]
-    row['QtrStartDate'] = finwire_str.str[23:31]
-    row['PostingDate'] = finwire_str.str[31:39]
-    row['Revenue'] = finwire_str.str[39:56]
-    row['Earnings'] = finwire_str.str[56:73]
-    row['EPS'] = finwire_str.str[73:85]
-    row['DilutedEPS'] = finwire_str.str[85:97]
-    row['Margin'] = finwire_str.str[97:109]
-    row['Inventory'] = finwire_str.str[109:126]
-    row['Assets'] = finwire_str.str[126:143]
-    row['Liabilities'] = finwire_str.str[143:160]
-    row['ShOut'] = finwire_str.str[160:173]
-    row['DilutedShOut'] = finwire_str.str[173:186]
-    row['CoNameOrCIK'] = finwire_str.str[186:]
-    return row
+    pass
 
-# COMMAND ----------
 
-# MAGIC %md
-# MAGIC #### Load CMP Files (DimCompany)
-
-# COMMAND ----------
 
 
 def load_finwire_file(finwire_file_path, dbname, extract_type='CMP'):
-    spark.sql(f"USE {dbname}")
-    finwire = spark.read.format("text").load(finwire_file_path)\
-        .withColumn("RecType", extract_finwire_type(col("value")))
-
-    finwire_cmp = finwire.where(f"RecType == 'CMP'") \
-        .withColumn("columnarized", columnarize_finwire_data_cmp("value")) \
-        .select("columnarized.*")
-    finwire_sec = finwire.where(f"RecType == 'SEC'") \
-        .withColumn("columnarized", columnarize_finwire_data_sec("value")) \
-        .select("columnarized.*")
-    finwire_fin = finwire.where(f"RecType == 'FIN'") \
-        .withColumn("columnarized", columnarize_finwire_data_fin("value")) \
-        .select("columnarized.*")
-    return finwire_cmp, finwire_sec, finwire_fin
+    pass
 
 
-#from google.cloud import storage
+
 
 def load_finwire_files(dbname, scale_factor):
-    spark.sql(f"USE {dbname}")
-    spark.sql(f"DROP TABLE DimCompany")
-    create_dim_company(dbname)
-    
-    files_path = f"{os.getcwd()}/data/{scale_factor}/Batch1/"
-    files = os.listdir(files_path)
-    finwire_files = [file for file in files if "FINWIRE" in file and "_audit" not in file]
-    # First load the Finwire Data into dataframe
-    cmp = None
-    sec = None
-    fin = None
-    for i, finwire_file in enumerate(sorted(finwire_files)):
-        if i == 0:
-            finwire_file_path = files_path + finwire_file
-            cmp, sec, fin = load_finwire_file(finwire_file_path, "test")
-        else:
-            finwire_file_path = files_path + finwire_file
-            newcmp, newsec, newfin = load_finwire_file(finwire_file_path, "test")
-            cmp = cmp.union(newcmp)
-            sec = sec.union(newsec)
-            fin = fin.union(newfin)
-    cmp.orderBy(['CIK', 'PTS']).createOrReplaceTempView("finwire_cmp")
-    sec.orderBy(['Symbol', 'PTS']).createOrReplaceTempView("finwire_sec")
-    fin.createOrReplaceTempView("finwire_fin")
+    pass
 
-# load_finwire_files("test", scale_Factor)
 
-# COMMAND ----------
 
 def load_finwires_into_dim_company(dbname, scale_factor):
-    spark.sql(f"USE {dbname}")
+    pass
 
-    # Now load industry.txt file
-#     industry_schema = "`IN_ID` string, `IN_NAME` string, `IN_SC_ID` string"
-#     industry = spark.read.format("csv") \
-#         .option("delimiter", "|") \
-#         .schema(industry_schema) \
-#         .load(f"gs://{bucket_name}/TPCDI_Data/TPCDI_Data/{scale_factor}/Batch1/Industry.txt")
-#     industry.createOrReplaceTempView("industry")
-    
-    # Now load status file
-    status_schema = "`ST_ID` string, `ST_NAME` string"
-    status = spark.read.format("csv") \
-        .option("delimiter", "|") \
-        .schema(status_schema) \
-        .load(f"{os.getcwd()}/data/{scale_factor}/Batch1/StatusType.txt")
-    status.createOrReplaceTempView("status")
-    
-    spark.sql("""
-    SELECT
-           monotonically_increasing_id() AS SK_CompanyID,
-           CIK AS CompanyID,
-           ST_NAME AS Status,
-           CompanyName AS Name,
-           IN_NAME AS Industry,
-           SPrating AS SPrating,
-           (SELECT CASE 
-                WHEN SUBSTRING(SPrating, 1, 1) == 'A' OR SUBSTRING(SPrating, 1, 3) == 'BBB' THEN FALSE
-                ELSE TRUE
-            END) AS isLowGrade,
-           CEOname AS CEO,
-           AddrLine1 AS AddressLine1,
-           AddrLine2 AS AddressLine2,
-           PostalCode,
-           City,
-           StateProvince AS StateProv,
-           Country,
-           Description,
-           TO_DATE(FoundingDate, 'yyyyMMdd') AS FoundingDate,
-           (SELECT TRUE) AS IsCurrent,
-           (SELECT 1) AS BatchID,
-           (SELECT 
-                 CASE WHEN TO_DATE(PTS, 'yyyyMMdd-kkmmss') IS NOT NULL 
-                     THEN TO_DATE(PTS, 'yyyyMMdd-kkmmss')
-                 ELSE current_date()
-            END) AS EffectiveDate,
-           TO_DATE('9999-12-31') AS EndDate
-       FROM finwire_cmp, industry, status
-       WHERE
-           finwire_cmp.Status = status.ST_ID AND
-           finwire_cmp.IndustryID = industry.IN_ID
-    """).createOrReplaceTempView("DimCompanyNoUpdate")
-    
-    spark.sql("""
-        SELECT 
-            *, 
-            MAX(SK_CompanyID) OVER (PARTITION BY CompanyID) AS LAST_SK, 
-            LAG(EffectiveDate, -1) IGNORE NULLS OVER (PARTITION BY CompanyID ORDER BY EffectiveDate) 
-                AS NewEndDate
-        FROM DimCompanyNoUpdate
-    """) \
-    .withColumn("IsCurrent", expr("CASE WHEN LAST_SK != SK_CompanyID THEN False ELSE TRUE END")) \
-    .withColumn(
-        "EndDate", 
-        expr("CASE WHEN LAST_SK != SK_CompanyID THEN NewEndDate ELSE EndDate END")) \
-    .drop("LAST_SK", "NewEndDate") \
-    .createOrReplaceTempView("DimCompanyUpdated")
-    
-    cast_to_target_schema("DimCompanyUpdated", "DimCompany").createOrReplaceTempView("DimCompanyUpdated")
-
-
-    # Insert data into dimension table
-    spark.sql("""
-       INSERT INTO DimCompany(SK_CompanyID, CompanyID, Status, Name, Industry, SPrating, isLowGrade,
-                               CEO,
-                               AddressLine1, AddressLine2, PostalCode, City, StateProv, Country, 
-                               Description, FoundingDate, IsCurrent, BatchID, EffectiveDate, EndDate)
-       SELECT * FROM DimCompanyUpdated
-    """)
-    return spark.sql("SELECT * FROM DimCompany")
-
-# spark.sql("DELETE FROM DimCompany")
-# finwires = load_finwires_into_dim_company("test")
-# finwires.limit(5).toPandas()
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC #### Load SEC Files (DimSecurity)
-
-# COMMAND ----------
-
-"""         
-            SK_SecurityID INTEGER,
-            Symbol CHAR(15),
-            Issue CHAR(6),
-            Status CHAR(10),
-            Name CHAR(70),
-            ExchangeID CHAR(6),
-            SK_CompanyID BIGINT,
-            SharesOutstanding BIGINT,
-            FirstTrade DATE,
-            FirstTradeOnExchange DATE,
-            Dividend FLOAT,
-            IsCurrent BOOLEAN,
-            BatchID INTEGER,
-            EffectiveDate DATE,
-            EndDate DATE
-            
-            `PTS` string, `RecType` string, `Symbol` string, `IssueType` string, `Status` string, 
-            `Name` string, `ExID` string, `ShOut` string, `FirstTradeDate` string, 
-            `FirstTradeExchg` string, `Dividend` string, `CoNameOrCIK` string
-"""
 def load_finwires_into_dim_security(dbname):
+    pass
 
-    spark.sql(f"USE {dbname}")
-    spark.sql(f"DROP TABLE DimSecurity")
-    create_dim_security(dbname)
-    
-    spark.sql("""
-            SELECT
-            monotonically_increasing_id() AS SK_SecurityID,
-            Symbol,
-            IssueType AS Issue,
-            ST_Name AS Status,
-            f.Name,
-            ExId as ExchangeID,
-            SK_CompanyID,
-            ShOut AS SharesOutstanding,
-            TO_DATE(FirstTradeDate, 'yyyyMMdd') AS FirstTrade,
-            TO_DATE(FirstTradeExchg, 'yyyyMMdd')AS FirstTradeOnExchange,
-            Dividend,
-            (SELECT TRUE) AS IsCurrent,
-            1 AS BatchID,
-            (SELECT 
-                 CASE WHEN TO_DATE(PTS, 'yyyyMMdd-kkmmss') IS NOT NULL 
-                     THEN TO_DATE(PTS, 'yyyyMMdd-kkmmss')
-                 ELSE current_date()
-            END) AS EffectiveDate,
-            TO_DATE('9999-12-31') AS EndDate
-        FROM finwire_sec f JOIN status s ON
-            (f.Status = s.ST_ID) JOIN DimCompany c ON
-            (c.CompanyID = f.CoNameOrCIK OR c.Name=f.CoNameOrCIK)
-    """).createOrReplaceTempView("DimSecurityNoUpdate")
-    
-    spark.sql("""
-        SELECT 
-            *, 
-            MAX(SK_SecurityID) OVER (PARTITION BY Symbol) AS LAST_SK, 
-            LAG(EffectiveDate, -1) IGNORE NULLS OVER (PARTITION BY Symbol ORDER BY EffectiveDate) 
-                AS NewEndDate
-        FROM DimSecurityNoUpdate
-    """) \
-    .withColumn("IsCurrent", expr("CASE WHEN LAST_SK != SK_SecurityID THEN False ELSE TRUE END")) \
-    .withColumn(
-        "EndDate", 
-        expr("CASE WHEN LAST_SK != SK_SecurityID THEN NewEndDate ELSE EndDate END")) \
-    .drop("LAST_SK", "NewEndDate") \
-    .createOrReplaceTempView("DimSecurityUpdated")
-    
-    cast_to_target_schema("DimSecurityUpdated", "DimSecurity").createOrReplaceTempView("DimSecurityUpdated")
-
-    # Now insert values into dimSecurity
-    spark.sql("""
-        INSERT INTO DimSecurity(SK_SecurityID, Symbol, Issue, Status, Name, ExchangeID, SK_CompanyID,
-                                SharesOutstanding, FirstTrade, FirstTradeOnExchange, Dividend,
-                                IsCurrent, BatchID, EffectiveDate, EndDate)
-        SELECT * FROM DimSecurityUpdated
-           """)
-    return spark.sql("SELECT * FROM DimSecurity")
-
-# spark.sql("DELETE FROM DimSecurity")
-# finwire_sec = load_finwires_into_dim_security("test")
-# finwire_sec.limit(5).toPandas()
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC #### Load FIN files (Financial table)
-
-# COMMAND ----------
-
-"""
-            `PTS` string, `RecType` string , `Year` string , `Quarter` string, `QtrStartDate` string,
-            `PostingDate` string, 
-            `Revenue` string, `Earnings` string, `EPS` string , `DilutedEPS` string, `Margin` string,
-            `Inventory` string, `Assets` string,
-            `Liabilities` string, `ShOut` string, `DilutedShOut` string, `CoNameOrCIK` string
-        """
 def load_finwires_into_financial_table(dbname):
-    spark.sql(f"USE {dbname}")
-    
-    cast_to_target_schema("finwire_fin", "Financial").createOrReplaceTempView("finwire_fin")
+    pass
 
-    spark.sql("""
-        INSERT INTO Financial(SK_CompanyID, FI_YEAR, FI_QTR, FI_QTR_START_DATE, FI_REVENUE,
-                              FI_NET_EARN, FI_BASIC_EPS, FI_DILUT_EPS, FI_MARGIN, FI_INVENTORY,
-                              FI_ASSETS, FI_LIABILITY, FI_OUT_BASIC, FI_OUT_DILUT)
-          SELECT DISTINCT
-              SK_CompanyID,
-              CAST(Year AS INT) AS FI_YEAR,
-              CAST(Quarter AS INT) AS FI_QTR,
-              TO_DATE(QtrStartDate, 'yyyyMMdd') AS FI_QTR_START_DATE,
-              CAST(Revenue AS FLOAT) AS FI_REVENUE,
-              CAST(Earnings AS FLOAT) AS FI_NET_EARN,
-              CAST(EPS AS FLOAT) AS FI_BASIC_EPS,
-              CAST(DilutedEPS AS FLOAT) AS FI_DILUT_EPS,
-              CAST(Margin AS FLOAT) AS FI_MARGIN,
-              CAST(Inventory AS FLOAT) AS FI_INVENTORY,
-              CAST(Assets AS FLOAT) AS FI_ASSETS,
-              cast(Liabilities AS FLOAT) AS FI_LIABILITY,
-              cast(ShOut AS FLOAT) AS FI_OUT_BASIC,
-              cast(DilutedSHOut AS FLOAT) AS FI_OUT_DILUT
-          FROM finwire_fin f 
-          JOIN DimCompany c ON (c.CompanyID = f.CoNameOrCIK OR c.Name = f.CoNameOrCIK)
-    """)
-    return spark.sql("SELECT * FROM Financial")
 
-# spark.sql("DELETE FROM Financial")
-# financial = load_finwires_into_financial_table("test")
-# financial.limit(5).toPandas()
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Dim Trade
-
-# COMMAND ----------
-
-"""
-    Loading status type and trade type into staging database
-"""
 
 def load_status_type(dbname, staging_area_folder):
-    #spark.sql(f"USE {dbname}")
-    schema = """
-        `ST_ID` String,
-        `ST_NAME` String
-    """
-    status_type = spark.read.format("csv").option("delimiter", "|").schema(schema).load(f"{staging_area_folder}/StatusType.txt")
-    
-    status_type.createOrReplaceTempView("status_type")
-    
-    spark.sql(
-    """
-        INSERT INTO StatusType(ST_ID, ST_NAME)
-        SELECT ST_ID, ST_NAME FROM status_type
-    """)
-    return status_type
+   pass
 
 
 def load_trade_type(dbname, staging_area_folder):
-    #spark.sql(f"USE {dbname}")
-    schema = """
-        `TT_ID` String,
-        `TT_NAME` String,
-        `TT_IS_SELL` INTEGER,
-        `TT_IS_MRKT` INTEGER
-    """
-    trade_type = spark.read.format("csv").option("delimiter", "|").schema(schema).load(f"{staging_area_folder}/TradeType.txt")
-    
-    trade_type.createOrReplaceTempView("trade_type")
-    
-    spark.sql(
-    """
-        INSERT INTO TradeType(TT_ID, TT_NAME, TT_IS_SELL, TT_IS_MRKT)
-        SELECT TT_ID, TT_NAME, TT_IS_SELL, TT_IS_MRKT FROM trade_type
-    """)
-    return trade_type
+    pass
 
-# trade_type = load_trade_type("test")
-# trade_type.limit(3).toPandas()
 
-# status_type = load_status_type("test")
-# status_type.limit(3).toPandas()
-
-# COMMAND ----------
-
-#TradeHistory.txt
-#The TradeHistory.txt file is a plain-text file with variable length fields separated by a vertical
-#bar (“|”). Records have a terminator character appropriate for the System Under Test. This
-#file is used only in the Historical Load.
 
 
 def load_trade_view(dbname, staging_area_folder):
-    #spark.sql(f"USE {dbname}")
-    schema = """
-            `T_ID` INTEGER,
-            `T_DTS` TIMESTAMP,
-            `T_ST_ID` String,
-            `T_TT_ID` String,
-            `T_IS_CASH`  Boolean,
-            `T_S_SYMB` String,
-            `T_QTY` Float,
-            `T_BID_PRICE` Float,
-            `T_CA_ID` String,
-            `T_EXEC_NAME` String,
-            `T_TRADE_PRICE` Float,
-            `T_CHRG` Float,
-            `T_COMM` Float,
-            `T_TAX` Float   
-    """
-    
-    trade = (
-        spark.read.format("csv")
-        .option("delimiter", "|")
-        .schema(schema)
-        .load(f"{staging_area_folder}/Trade.txt")
-        
-    )
-    # Save staging data into temp view
-    trade.createOrReplaceTempView("trade")
-    
-    return trade
+    pass
     
 def load_tradehistory_view(dbname, staging_area_folder):
-    #spark.sql(f"USE {dbname}")
-    schema = """
-            `TH_T_ID` INTEGER,
-            `TH_DTS` TIMESTAMP,
-            `TH_ST_ID` String
-    """
-    
-    trade_history = (
-        spark.read.format("csv")
-        .option("delimiter", "|")
-        .schema(schema)
-        .load(f"{staging_area_folder}/TradeHistory.txt")
-        
-    )
-    # Save staging data into temp view
-    trade_history.createOrReplaceTempView("tradeHistory")
-    
-    return trade_history
+    pass
 
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## FactMarketHistory
-
-# COMMAND ----------
 
 from pyspark.sql.window import Window
 from pyspark.sql.functions import *
 
 def load_staging_FactMarketStory(dbname, staging_area_folder):
-    spark.sql(f"USE {dbname}")
-    schema = """
-        `DM_DATE` DATE,
-        `DM_S_SYMB` STRING,
-        `DM_CLOSE` FLOAT,
-        `DM_HIGH` FLOAT,
-        `DM_LOW` FLOAT,
-        `DM_VOL` INTEGER
-    """
-    DailyMarket_ = spark.read.format("csv").option("delimiter", "|").schema(schema).load(f"{staging_area_folder}/DailyMarket.txt")
-    DailyMarket_.createOrReplaceTempView("dailymarket")
+    pass
 
-    # TODO: DI Message
-    DailyMarket_ = spark.sql(
-        """
-        WITH DailyMarket AS (
-            SELECT DM.*, MIN(dm2.DM_DATE) as FiftyTwoWeekHighDate, MIN(dm3.DM_DATE) as FiftyTwoWeekLowDate
-            FROM (
-             SELECT dm.DM_CLOSE,
-                dm.DM_S_SYMB,
-                dm.DM_HIGH,
-                dm.DM_LOW,
-                dm.DM_VOL,
-                dm.DM_DATE,
-                max(dm.DM_HIGH) OVER (
-                    PARTITION BY dm.DM_S_SYMB
-                    ORDER BY CAST(dm.DM_DATE AS timestamp)
-                    RANGE BETWEEN INTERVAL 364 DAYS PRECEDING AND CURRENT ROW
-                 ) AS FiftyTwoWeekHigh,
-                 min(dm.DM_LOW) OVER (
-                    PARTITION BY dm.DM_S_SYMB
-                    ORDER BY CAST(dm.DM_DATE AS timestamp)
-                    RANGE BETWEEN INTERVAL 364 DAYS PRECEDING AND CURRENT ROW
-                 ) AS FiftyTwoWeekLow
-                 FROM dailymarket dm
-            ) DM INNER JOIN dailymarket dm2 ON DM.FiftyTwoWeekHigh = dm2.DM_HIGH AND dm2.DM_DATE BETWEEN date_sub(DM.DM_DATE, 364) AND DM.DM_DATE
-         INNER JOIN dailymarket dm3 ON DM.FiftyTwoWeekLow = dm3.DM_LOW AND dm3.DM_DATE BETWEEN date_sub(DM.DM_DATE, 364) AND dm.DM_DATE
-            GROUP BY DM.DM_DATE, DM.DM_CLOSE, DM.DM_HIGH, DM.DM_LOW, DM.DM_VOL, DM.FiftyTwoWeekHigh, DM.FiftyTwoWeekLow, dm.DM_S_SYMB
-        ), FinData AS (
-            SELECT
-            SK_CompanyID,
-            SUM(FI_BASIC_EPS) OVER (
-                PARTITION BY FI_QTR
-                ORDER BY FI_YEAR, FI_QTR
-                ROWS BETWEEN 4 PRECEDING AND CURRENT ROW
-            ) as Eps
-            From Financial
-        ), CompEarning AS (
-            SELECT dc.CompanyID, fd.Eps
-            FROM DimCompany dc
-            INNER JOIN FinData fd ON dc.CompanyID = fd.SK_CompanyID
-        )
-        SELECT  cast(dm.DM_CLOSE as float) as ClosePrice,
-                cast(dm.DM_HIGH as float) as DayHigh,
-                cast(dm.DM_LOW as float) as DayLow,
-                cast(dm.DM_VOL as int) as Volume,
-                cast(ds.SK_SecurityID as int) as SK_SecurityID,
-                cast(ds.SK_CompanyID as int) as SK_CompanyID,
-                cast(dd1.SK_DateID as int) as SK_DateID,
-                cast(dd2.SK_DateID as int) as SK_FiftyTwoWeekHighDate,
-                cast(dd3.SK_DateID as int) as SK_FiftyTwoWeekLowDate,
-                cast(dm.FiftyTwoWeekHigh as float) as FiftyTwoWeekHigh,
-                cast(dm.FiftyTwoWeekLow as float) as FiftyTwoWeekLow,
-                cast(((ds.dividend / dm.DM_CLOSE) * 100.0) as float) as Yield,
-                CASE 
-                    WHEN ISNULL(ce.Eps) or ce.Eps = 0 THEN NULL 
-                    ELSE cast((dm.DM_CLOSE / ce.Eps) as float)
-                END as PERatio,
-                cast(1 as int) as BatchID
-        FROM DailyMarket dm
-        INNER JOIN DimSecurity ds ON ds.Symbol = dm.DM_S_SYMB AND dm.DM_DATE BETWEEN ds.EffectiveDate AND ds.EndDate
-        INNER JOIN DimDate dd1 ON dd1.DateValue = dm.DM_DATE
-        INNER JOIN DimDate dd2 ON dd2.DateValue = dm.FiftyTwoWeekHighDate
-        INNER JOIN DimDate dd3 ON dd3.DateValue = dm.FiftyTwoWeekLowDate
-        LEFT JOIN CompEarning ce ON ds.SK_CompanyID = ce.CompanyID
-         """)
-    
-    DailyMarket_.createOrReplaceTempView("dailymarket_insert")
 
-    spark.sql("""
-               INSERT INTO FactMarketHistory(ClosePrice, DayHigh, DayLow, Volume, SK_SecurityID, SK_CompanyID, 
-                                            SK_DateID, SK_FiftyTwoWeekHighDate, SK_FiftyTwoWeekLowDate,  FiftyTwoWeekHigh, 
-                                            FiftyTwoWeekLow, Yield, PERatio, BatchID)
-       SELECT * FROM dailymarket_insert
-    """)
-    
-    return spark.sql("""
-       Select * from FactMarketHistory
-    """)
-
-# spark.sql("""DELETE FROM FactMarketHistory""")
-# load_staging_FactMarketStory("test")
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Prospect
-
-# COMMAND ----------
-
-#Create prospect
 from pyspark.sql.functions import udf, struct
 from datetime import datetime
 
