@@ -1,0 +1,4 @@
+findspark==2.0.1
+pandas==2.2.3
+setuptools==75.5.0
+pyarrow==18.0.0
