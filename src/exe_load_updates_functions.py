@@ -147,7 +147,7 @@ def load_update_dimen_trade(dbname,staging_area_folder_up1):
 
 
 
-def load_update_fact_cash_balances(dbname, staging_area_folder_upl):
+def load_update_fact_cash_balances(spark,dbname, staging_area_folder_upl):
     #spark.sql(f"USE {dbname}")
     schema = """
             `CT_CA_ID` INTEGER,

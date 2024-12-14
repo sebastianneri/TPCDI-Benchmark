@@ -1,7 +1,10 @@
 import shutil
-import findspark
+#import findspark
+#findspark.init()
 from pyspark import SparkContext, SparkConf
 from pyspark.sql import SparkSession
+import os
+
 
 #########################################################################
 #                                                                       #
@@ -9,7 +12,7 @@ from pyspark.sql import SparkSession
 #                                                                       #    
 #########################################################################
 
-def create_dim_account(dbname):
+def create_dim_account(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -32,7 +35,7 @@ def create_dim_account(dbname):
 
 
 
-def create_dim_broker(dbname):
+def create_dim_broker(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -57,7 +60,7 @@ def create_dim_broker(dbname):
 
 
 
-def create_dim_company(dbname):
+def create_dim_company(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -89,7 +92,7 @@ def create_dim_company(dbname):
 
 
     
-def create_dim_customer(dbname):
+def create_dim_customer(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -133,7 +136,7 @@ def create_dim_customer(dbname):
     print("Created dim customer.")
 
 
-def create_dim_date(dbname):
+def create_dim_date(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -162,7 +165,7 @@ def create_dim_date(dbname):
     print("Created dim date.")
 
 
-def create_dim_security(dbname):
+def create_dim_security(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -188,7 +191,7 @@ def create_dim_security(dbname):
     print("Created dim security.")
 
 
-def create_dim_time(dbname):
+def create_dim_time(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -209,7 +212,7 @@ def create_dim_time(dbname):
     print("Created dim time.")
 
 
-def create_dim_trade(dbname):
+def create_dim_trade(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -242,7 +245,7 @@ def create_dim_trade(dbname):
 
 
 
-def create_dimessages_table(dbname):
+def create_dimessages_table(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -259,16 +262,16 @@ def create_dimessages_table(dbname):
     print("Created dim messages.")
 
 
-def create_dims(dbname):
-    create_dim_account(dbname)
-    create_dim_broker(dbname)
-    create_dim_company(dbname)
-    create_dim_customer(dbname)
-    create_dim_date(dbname)
-    create_dim_security(dbname)
-    create_dim_time(dbname)
-    create_dim_trade(dbname)
-    create_dimessages_table(dbname)
+def create_dims(spark,dbname):
+    create_dim_account(spark,dbname)
+    create_dim_broker(spark,dbname)
+    create_dim_company(spark,dbname)
+    create_dim_customer(spark,dbname)
+    create_dim_date(spark,dbname)
+    create_dim_security(spark,dbname)
+    create_dim_time(spark,dbname)
+    create_dim_trade(spark,dbname)
+    create_dimessages_table(spark,dbname)
 
 
 
@@ -279,7 +282,7 @@ def create_dims(dbname):
 #########################################################################
 
 
-def create_fact_cash_balances(dbname):
+def create_fact_cash_balances(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql("""
         CREATE TABLE IF NOT EXISTS FactCashBalances(
@@ -293,7 +296,7 @@ def create_fact_cash_balances(dbname):
     print("Created fact cash balances")
 
 
-def create_fact_holdings(dbname):
+def create_fact_holdings(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql("""
         CREATE TABLE IF NOT EXISTS FactHoldings(
@@ -313,7 +316,7 @@ def create_fact_holdings(dbname):
     print("Created fact holdings")
 
 
-def create_fact_market_history(dbname):
+def create_fact_market_history(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql("""
         CREATE TABLE IF NOT EXISTS FactMarketHistory(
@@ -336,7 +339,7 @@ def create_fact_market_history(dbname):
     print("Created fact market history")
 
 
-def create_fact_watches(dbname):
+def create_fact_watches(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql("""
         CREATE TABLE IF NOT EXISTS FactWatches(
@@ -350,11 +353,11 @@ def create_fact_watches(dbname):
     print("Created fact watches")
 
 
-def create_facts(dbname):
-    create_fact_cash_balances(dbname)
-    create_fact_holdings(dbname)
-    create_fact_market_history(dbname)
-    create_fact_watches(dbname)
+def create_facts(spark,dbname):
+    create_fact_cash_balances(spark,dbname)
+    create_fact_holdings(spark,dbname)
+    create_fact_market_history(spark,dbname)
+    create_fact_watches(spark,dbname)
 
 
 #########################################################################
@@ -364,7 +367,7 @@ def create_facts(dbname):
 #########################################################################
 
 
-def create_industry_table(dbname):
+def create_industry_table(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -377,7 +380,7 @@ def create_industry_table(dbname):
     )
     print("Created table industry.")
 
-def create_financial_table(dbname):
+def create_financial_table(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -401,7 +404,7 @@ def create_financial_table(dbname):
     )
     print("Created table Finacial.")
 
-def create_prospect_table(dbname):
+def create_prospect_table(spark,dbname):
     spark.sql(f"USE {dbname}")
 #     spark.sql("""
 #         DROP TABLE Prospect
@@ -443,7 +446,7 @@ def create_prospect_table(dbname):
     print("Created table Prospect.")
 
 
-def create_status_type_table(dbname):
+def create_status_type_table(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -457,7 +460,7 @@ def create_status_type_table(dbname):
     
 
 
-def create_taxrate_table(dbname):
+def create_taxrate_table(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -472,7 +475,7 @@ def create_taxrate_table(dbname):
     
 
 
-def create_tradetype_table(dbname):
+def create_tradetype_table(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -488,7 +491,7 @@ def create_tradetype_table(dbname):
     
 
 
-def create_audit_table(dbname):
+def create_audit_table(spark,dbname):
     spark.sql(f"USE {dbname}")
     spark.sql(
         """
@@ -506,14 +509,14 @@ def create_audit_table(dbname):
 
 
 
-def create_other_tables(dbname):
-    create_industry_table(dbname)
-    create_financial_table(dbname)
-    create_prospect_table(dbname)
-    create_status_type_table(dbname)
-    create_taxrate_table(dbname)
-    create_tradetype_table(dbname)
-    create_audit_table(dbname)
+def create_other_tables(spark,dbname):
+    create_industry_table(spark,dbname)
+    create_financial_table(spark,dbname)
+    create_prospect_table(spark,dbname)
+    create_status_type_table(spark,dbname)
+    create_taxrate_table(spark,dbname)
+    create_tradetype_table(spark,dbname)
+    create_audit_table(spark,dbname)
 
 
 #########################################################################
@@ -523,14 +526,14 @@ def create_other_tables(dbname):
 #########################################################################
 
 
-def create_warehouse(dbname="test"):
+def create_warehouse(spark, dbname="test"):
     spark.sql(f"CREATE DATABASE IF NOT EXISTS {dbname}")
-    create_dims(dbname)
-    create_facts(dbname)
-    create_other_tables(dbname)
+    create_dims(spark,dbname)
+    create_facts(spark,dbname)
+    create_other_tables(spark,dbname)
 
 
-def clean_warehouse(dbname="test"):
+def clean_warehouse(spark, dbname="test"):
     spark.sql(f"DROP DATABASE IF EXISTS {dbname} CASCADE")
     warehouse_path = os.getcwd()+'/warehouse/'
     shutil.rmtree(warehouse_path)

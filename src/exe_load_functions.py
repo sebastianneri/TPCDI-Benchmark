@@ -1,22 +1,24 @@
 import os
-from pyspark.sql.functions import expr, udf, struct
-from pyspark.sql.types import LongType, StringType, StructField, StructType, BooleanType, ArrayType, IntegerType, FloatType, DateType, TimestampType
+#import findspark
+#findspark.init()
+from pyspark.sql.functions import to_date, date_format,collect_set, expr, udf, struct, col
+# from pyspark.sql.types import LongType, StringType, StructField, StructType, BooleanType, ArrayType, IntegerType, FloatType, DateType, TimestampType
+from pyspark.sql.types import StringType, StructField, StructType
 from datetime import *
-import findspark
-from pyspark import SparkContext, SparkConf
-from pyspark.sql import SparkSession
+#from pyspark import SparkContext, SparkConf
+#from pyspark.sql import SparkSession
 from src.aux_functions import cast_to_target_schema, columnarize_finwire_data_cmp, columnarize_finwire_data_fin, columnarize_finwire_data_sec, extract_finwire_type, get_marketingnameplate
 from src.exe_create_functions import create_dim_company, create_dim_security, create_prospect_table
 from src.parser_functions import add_account_parser, customer_parser, inactive_parser, update_account_parser, update_customer_parser
 
 #########################################################################
 #                                                                       #
-#                         LOAD                       #        
+#                         LOAD                                          #        
 #                                                                       #    
 #########################################################################
 
 
-def load_dim_date(dbname, staging_area_folder):
+def load_dim_date(spark,dbname, staging_area_folder):
     spark.sql(f"USE {dbname}")
     schema = """
             `SK_DateID` INTEGER,
@@ -50,7 +52,7 @@ def load_dim_date(dbname, staging_area_folder):
     return dates
 
 
-def load_dim_time(dbname, staging_area_folder):
+def load_dim_time(spark,dbname, staging_area_folder):
     spark.sql(f"USE {dbname}")
     schema = """
             `SK_TimeID` INTEGER,
@@ -76,7 +78,7 @@ def load_dim_time(dbname, staging_area_folder):
     return times
 
 
-def load_tax_rate(dbname, staging_area_folder):
+def load_tax_rate(spark,dbname, staging_area_folder):
     spark.sql(f"USE {dbname}")
     schema = """
         `TX_ID` String,
@@ -105,7 +107,7 @@ def load_tax_rate(dbname, staging_area_folder):
 
 
 
-def load_staging_hr_file(dbname, staging_area_folder):
+def load_staging_hr_file(spark,dbname, staging_area_folder):
     spark.sql(f"USE {dbname}")
     schema = """
             `EmployeeID` INTEGER,
@@ -179,7 +181,7 @@ def load_staging_hr_file(dbname, staging_area_folder):
 #########################################################################
 
 
-def load_finwire_file(finwire_file_path, dbname, extract_type='CMP'):
+def load_finwire_file(spark,finwire_file_path, dbname, extract_type='CMP'):
     spark.sql(f"USE {dbname}")
     finwire = spark.read.format("text").load(finwire_file_path)\
         .withColumn("RecType", extract_finwire_type(col("value")))
@@ -197,10 +199,10 @@ def load_finwire_file(finwire_file_path, dbname, extract_type='CMP'):
 
 
 
-def load_finwire_files(dbname, scale_factor):
+def load_finwire_files(spark,dbname, scale_factor):
     spark.sql(f"USE {dbname}")
     spark.sql(f"DROP TABLE DimCompany")
-    create_dim_company(dbname)
+    create_dim_company(spark, dbname)
     
     files_path = f"{os.getcwd()}/data/{scale_factor}/Batch1/"
     files = os.listdir(files_path)
@@ -212,10 +214,10 @@ def load_finwire_files(dbname, scale_factor):
     for i, finwire_file in enumerate(sorted(finwire_files)):
         if i == 0:
             finwire_file_path = files_path + finwire_file
-            cmp, sec, fin = load_finwire_file(finwire_file_path, "test")
+            cmp, sec, fin = load_finwire_file(spark,finwire_file_path, "test")
         else:
             finwire_file_path = files_path + finwire_file
-            newcmp, newsec, newfin = load_finwire_file(finwire_file_path, "test")
+            newcmp, newsec, newfin = load_finwire_file(spark,finwire_file_path, "test")
             cmp = cmp.union(newcmp)
             sec = sec.union(newsec)
             fin = fin.union(newfin)
@@ -225,7 +227,7 @@ def load_finwire_files(dbname, scale_factor):
 
 
 
-def load_finwires_into_dim_company(dbname, scale_factor):
+def load_finwires_into_dim_company(spark,dbname, scale_factor):
     spark.sql(f"USE {dbname}")
 
     # Now load industry.txt file
@@ -294,7 +296,7 @@ def load_finwires_into_dim_company(dbname, scale_factor):
     .drop("LAST_SK", "NewEndDate") \
     .createOrReplaceTempView("DimCompanyUpdated")
     
-    cast_to_target_schema("DimCompanyUpdated", "DimCompany").createOrReplaceTempView("DimCompanyUpdated")
+    cast_to_target_schema(spark, "DimCompanyUpdated", "DimCompany").createOrReplaceTempView("DimCompanyUpdated")
 
 
     # Insert data into dimension table
@@ -308,11 +310,11 @@ def load_finwires_into_dim_company(dbname, scale_factor):
     return spark.sql("SELECT * FROM DimCompany")
 
 
-def load_finwires_into_dim_security(dbname):
+def load_finwires_into_dim_security(spark,dbname):
 
     spark.sql(f"USE {dbname}")
     spark.sql(f"DROP TABLE DimSecurity")
-    create_dim_security(dbname)
+    create_dim_security(spark,dbname)
     
     spark.sql("""
             SELECT
@@ -355,7 +357,7 @@ def load_finwires_into_dim_security(dbname):
     .drop("LAST_SK", "NewEndDate") \
     .createOrReplaceTempView("DimSecurityUpdated")
     
-    cast_to_target_schema("DimSecurityUpdated", "DimSecurity").createOrReplaceTempView("DimSecurityUpdated")
+    cast_to_target_schema(spark, "DimSecurityUpdated", "DimSecurity").createOrReplaceTempView("DimSecurityUpdated")
 
     # Now insert values into dimSecurity
     spark.sql("""
@@ -368,10 +370,10 @@ def load_finwires_into_dim_security(dbname):
 
 
 
-def load_finwires_into_financial_table(dbname):
+def load_finwires_into_financial_table(spark,dbname):
     spark.sql(f"USE {dbname}")
     
-    cast_to_target_schema("finwire_fin", "Financial").createOrReplaceTempView("finwire_fin")
+    cast_to_target_schema(spark,"finwire_fin", "Financial").createOrReplaceTempView("finwire_fin")
 
     spark.sql("""
         INSERT INTO Financial(SK_CompanyID, FI_YEAR, FI_QTR, FI_QTR_START_DATE, FI_REVENUE,
@@ -398,7 +400,7 @@ def load_finwires_into_financial_table(dbname):
     return spark.sql("SELECT * FROM Financial")
 
 
-def load_status_type(dbname, staging_area_folder):
+def load_status_type(spark,dbname, staging_area_folder):
     #spark.sql(f"USE {dbname}")
     schema = """
         `ST_ID` String,
@@ -416,7 +418,7 @@ def load_status_type(dbname, staging_area_folder):
     return status_type
 
 
-def load_trade_type(dbname, staging_area_folder):
+def load_trade_type(spark,dbname, staging_area_folder):
     #spark.sql(f"USE {dbname}")
     schema = """
         `TT_ID` String,
@@ -437,7 +439,7 @@ def load_trade_type(dbname, staging_area_folder):
 
 
 
-def load_trade_view(dbname, staging_area_folder):
+def load_trade_view(spark,dbname, staging_area_folder):
     #spark.sql(f"USE {dbname}")
     schema = """
             `T_ID` INTEGER,
@@ -468,7 +470,7 @@ def load_trade_view(dbname, staging_area_folder):
     
     return trade
     
-def load_tradehistory_view(dbname, staging_area_folder):
+def load_tradehistory_view(spark,dbname, staging_area_folder):
     #spark.sql(f"USE {dbname}")
     schema = """
             `TH_T_ID` INTEGER,
@@ -489,7 +491,7 @@ def load_tradehistory_view(dbname, staging_area_folder):
     return trade_history
 
 
-def load_staging_FactMarketStory(dbname, staging_area_folder):
+def load_staging_FactMarketStory(spark,dbname, staging_area_folder):
     spark.sql(f"USE {dbname}")
     schema = """
         `DM_DATE` DATE,
@@ -584,10 +586,10 @@ def load_staging_FactMarketStory(dbname, staging_area_folder):
 
 
 
-def load_staging_Prospect(dbname, staging_area_folder):
+def load_staging_Prospect(spark,dbname, staging_area_folder):
     spark.sql(f"USE {dbname}")
     spark.sql(f"DROP TABLE Prospect")
-    create_prospect_table(dbname)
+    create_prospect_table(spark, dbname)
 
     schema = """
         `AgencyID` String,
@@ -620,11 +622,17 @@ def load_staging_Prospect(dbname, staging_area_folder):
     
     now = datetime.utcnow()
     
+
     DimDate = spark.sql("""
-        SELECT SK_DateID FROM DimDate WHERE SK_DateID = 20201231
+    SELECT SK_DateID FROM DimDate WHERE SK_DateID = 20201231
     """)
+    print("Dim Date:")
+    DimDate.show()
     Prospect_ = Prospect_.crossJoin(DimDate)
     Prospect_.createOrReplaceTempView("Prospect_")
+
+    if not spark:
+        raise RuntimeError("SparkSession is not initialized!")
     
     spark.sql(
     """
@@ -693,7 +701,7 @@ def load_staging_Prospect(dbname, staging_area_folder):
     """)
     return Prospect_
 
-def load_staging_Industry(dbname, staging_area_folder):
+def load_staging_Industry(spark,dbname, staging_area_folder):
     spark.sql(f"USE {dbname}")
     schema = """
         `IN_ID` String,
@@ -716,17 +724,9 @@ def load_staging_Industry(dbname, staging_area_folder):
     return Industry_
 
 
-def customer_updater(row):
-    new_row= [row.C_ID]
-    for column in columns:
-        if column != 'C_ID' and (not '_update' in column):
-            if not getattr(row,column+'_update') is None:
-                new_row.append(getattr(row,column+'_update'))
-            else:
-                new_row.append(getattr(row,column))
-    return new_row
 
-def load_customers(dbname, staging_area_folder):
+
+def load_customers(spark,dbname, staging_area_folder):
     spark.sql(f"USE {dbname}")
     file_rdd = spark.read.text(f"{staging_area_folder}/CustomerMgmt.xml", wholetext=True).rdd
     new_customer_records_rdd = file_rdd.flatMap(customer_parser)
@@ -789,6 +789,16 @@ def load_customers(dbname, staging_area_folder):
             columns.append(column)
         else:
             columns.append(column+'_update')
+    # Function for update customers
+    def customer_updater(row):
+        new_row= [row.C_ID]
+        for column in columns:
+            if column != 'C_ID' and (not '_update' in column):
+                if not getattr(row,column+'_update') is None:
+                    new_row.append(getattr(row,column+'_update'))
+                else:
+                    new_row.append(getattr(row,column))
+        return new_row
 
     customers_updated = customers_updated.toDF(*columns).rdd
     customers_updated = customers_updated.map(customer_updater).toDF(customer_schema)
@@ -877,7 +887,7 @@ def load_customers(dbname, staging_area_folder):
 
 # COMMAND ----------
 
-def load_account(dbname, staging_area_folder):
+def load_account(spark,dbname, staging_area_folder):
     spark.sql(f"USE {dbname}")
     file_rdd = spark.read.text(f"{staging_area_folder}/CustomerMgmt.xml", wholetext=True).rdd
     new_customer_records_rdd = file_rdd.flatMap(customer_parser)
@@ -948,9 +958,9 @@ def load_account(dbname, staging_area_folder):
     return dimAccount
 
 
-def load_staging_dim_trade(dbname, staging_area_folder):
-    trade_view = load_trade_view(dbname, staging_area_folder)
-    tradehistory_view = load_tradehistory_view(dbname, staging_area_folder)
+def load_staging_dim_trade(spark,dbname, staging_area_folder):
+    trade_view = load_trade_view(spark, dbname, staging_area_folder)
+    tradehistory_view = load_tradehistory_view(spark, dbname, staging_area_folder)
     
     trade = spark.sql("""
             SELECT T.T_ID,
@@ -1050,7 +1060,7 @@ def load_staging_dim_trade(dbname, staging_area_folder):
 
 
 
-def load_fact_cash_balances(dbname, staging_area_folder):
+def load_fact_cash_balances(spark,dbname, staging_area_folder):
     #spark.sql(f"USE {dbname}")
     schema = """
             `CT_CA_ID` INTEGER,
@@ -1084,7 +1094,7 @@ def load_fact_cash_balances(dbname, staging_area_folder):
 
 
 
-def load_fact_holdings(dbname, staging_area_folder):
+def load_fact_holdings(spark,dbname, staging_area_folder):
     #spark.sql(f"USE {dbname}")
     schema = """
             `HH_H_T_ID` INTEGER,
@@ -1121,7 +1131,7 @@ def load_fact_holdings(dbname, staging_area_folder):
     return factHoldings
 
 
-def load_fact_watches(dbname, staging_area_folder):
+def load_fact_watches(spark,dbname, staging_area_folder):
     spark.sql(f"USE {dbname}")
     # Customer ID, Ticker symbol, Datetime, activate or cancel watch
     schema = """
@@ -1171,7 +1181,7 @@ def load_fact_watches(dbname, staging_area_folder):
     return spark.sql("SELECT * FROM FactWatches")
 
 
-def load_dimen_customer(dbname, staging_area_folder_upl):
+def load_dimen_customer(spark,dbname, staging_area_folder_upl):
     #spark.sql(f"USE {dbname}")
     schema = """
             `CDC_FLAG` STRING,
@@ -1360,7 +1370,7 @@ def load_dimen_customer(dbname, staging_area_folder_upl):
 
 
 
-def load_dimen_account(dbname, staging_area_folder_upl):
+def load_dimen_account(spark,dbname, staging_area_folder_upl):
     #spark.sql(f"USE {dbname}")
     schema = """
             `CDC_FLAG` STRING,
@@ -1418,7 +1428,7 @@ def load_dimen_account(dbname, staging_area_folder_upl):
 
 
 # It is almost the same function that load_dimen_customer 
-def load_dimen_customer2(dbname, staging_area_folder_up2):
+def load_dimen_customer2(spark,dbname, staging_area_folder_up2):
     #spark.sql(f"USE {dbname}")
     schema = """
             `CDC_FLAG` STRING,
@@ -1604,7 +1614,7 @@ def load_dimen_customer2(dbname, staging_area_folder_up2):
     return dimCustomer
 
 
-def load_dimen_account2(dbname, staging_area_folder_up2):
+def load_dimen_account2(spark,dbname, staging_area_folder_up2):
     #spark.sql(f"USE {dbname}")
     schema = """
             `CDC_FLAG` STRING,

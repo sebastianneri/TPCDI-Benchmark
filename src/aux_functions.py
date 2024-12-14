@@ -4,7 +4,9 @@ import pandas as pd
 import time
 import string
 import random
-import pyspark
+#import pyspark
+from pyspark.sql import SparkSession
+
 
 @pandas_udf(StringType())
 def extract_finwire_type(finwire_str):
@@ -46,7 +48,6 @@ def columnarize_finwire_data_cmp(finwire_str):
             `Name` string, `ExID` string, `ShOut` string, `FirstTradeDate` string, 
             `FirstTradeExchg` string, `Dividend` string, `CoNameOrCIK` string
 """)
-
 def columnarize_finwire_data_sec(finwire_str):
     row = pd.DataFrame(columns=['PTS', 'RecType', 'Symbol', 'IssueType', 'Status', 'Name', 'ExID',
                                 'ShOut', 'FirstTradeDate', 'FirstTradeExchg', 'Dividend',
@@ -64,6 +65,7 @@ def columnarize_finwire_data_sec(finwire_str):
     row['Dividend'] = finwire_str.str[148:160]
     row['CoNameOrCIK'] = finwire_str.str[160:]
     return row
+
 
 @pandas_udf("""
             `PTS` string, `RecType` string , `Year` string , `Quarter` string, `QtrStartDate` string,
@@ -97,7 +99,7 @@ def columnarize_finwire_data_fin(finwire_str):
 
 
 
-def cast_to_target_schema(source_table: str, target_table: str):
+def cast_to_target_schema(spark, source_table: str, target_table: str):
     # Load source and target DataFrames
     source_df = spark.table(source_table)
     target_df = spark.table(target_table)
