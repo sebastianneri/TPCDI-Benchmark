@@ -4,8 +4,6 @@ import pandas as pd
 import time
 import string
 import random
-#import pyspark
-from pyspark.sql import SparkSession
 
 
 @pandas_udf(StringType())
