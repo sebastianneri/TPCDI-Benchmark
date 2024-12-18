@@ -576,7 +576,7 @@ def create_audit_table(dbname):
         CREATE TABLE IF NOT EXISTS Audit( 
            DataSet CHAR(20),
            BatchID Integer,
-           DATE Date,
+           Date Date,
            Attribute CHAR(50),
            Value float,
            DValue float 
@@ -3353,10 +3353,11 @@ def run_audit(dbname, scale_factor):
     create_audit_table(dbname)
     batches = ["Batch1", "Batch2", "Batch3"]
     file_path = './Audit Queries/tpcdi_audit.sql'
-    spark.sql(load_queries(file_path))
     for batch in batches:
         staging_area_folder = f"{os.getcwd()}/data/{scale_factor}/{batch}"
         load_audit_data(staging_area_folder)
+    spark.sql(load_queries(file_path)).show(200)
+    print("Audit Finished")
 
 def run_historical_load(dbname, scale_factor, file_id):
     metrics = {}
@@ -3485,7 +3486,16 @@ def run(scale_factors=["Scale3"]):#, "Scale4", "Scale5", "Scale6"]):
         metrics = {}
         hist_res = run_historical_load(dbname, scale_factor, file_id)
         hist_incr = run_incremental_load(dbname, scale_factor, file_id)
-        run_audit(dbname, scale_factor)
+
+        query = input()
+        while query != "quit":
+            try:
+                query = input()
+                if "select" in query.lower():
+                    spark.sql(query).show()
+                run_audit(dbname, scale_factor)
+            except Exception as e:
+                print(e)
 
         metrics["TPC_DI_RPS"] = int(geometric_mean([hist_res["throughput"], hist_incr["throughput"]]))
         metrics_df = pd.DataFrame(metrics, index=[0])
@@ -3496,7 +3506,6 @@ try:
     run() 
 except Exception as e:
     print(e)
-    input()
 
 
 # COMMAND ----------
