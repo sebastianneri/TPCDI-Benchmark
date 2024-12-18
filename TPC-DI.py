@@ -612,20 +612,20 @@ def create_warehouse(dbname="test"):
 
 # COMMAND ----------
 
-def clean_warehouse(dbname="test"):
-    spark.sql(f"DROP DATABASE IF EXISTS {dbname} CASCADE")
-    warehouse_path = os.getcwd()+'/warehouse/'
-    shutil.rmtree(warehouse_path)
-    os.makedirs(warehouse_path)
-    print(f"Warehouse {dbname} deleted.")
+# def clean_warehouse(dbname="test"):
+#     spark.sql(f"DROP DATABASE IF EXISTS {dbname} CASCADE")
+#     warehouse_path = os.getcwd()+'/warehouse/'
+#     shutil.rmtree(warehouse_path)
+#     os.makedirs(warehouse_path)
+#     print(f"Warehouse {dbname} deleted.")
 
 # COMMAND ----------
 
-clean_warehouse("test")
+# clean_warehouse("test")
 
 # COMMAND ----------
 
-create_warehouse()
+# create_warehouse()
 
 # COMMAND ----------
 
@@ -2065,8 +2065,8 @@ def load_account(dbname, staging_area_folder):
 
 # COMMAND ----------
 
-spark.sql(f"DROP TABLE if exists DimTrade")
-create_dim_trade("test")
+# spark.sql(f"DROP TABLE if exists DimTrade")
+# create_dim_trade("test")
 
 
 # COMMAND ----------
@@ -2177,9 +2177,9 @@ def load_staging_dim_trade(dbname, staging_area_folder):
 
 # COMMAND ----------
 
-dim_trade = spark.sql("""
-        SELECT * FROM DimTrade
-""")
+# dim_trade = spark.sql("""
+#         SELECT * FROM DimTrade
+# """)
 #dim_trade.show()
 
 # COMMAND ----------
@@ -2443,7 +2443,7 @@ def load_fact_watches(dbname, staging_area_folder):
 
 # COMMAND ----------
 
-spark.sql("SELECT * FROM Industry").toPandas()
+# spark.sql("SELECT * FROM Industry").toPandas()
 
 # COMMAND ----------
 
@@ -2891,6 +2891,8 @@ def load_update_dimen_trade(dbname,staging_area_folder_up1):
 def load_update_fact_cash_balances(dbname, staging_area_folder_upl):
     #spark.sql(f"USE {dbname}")
     schema = """
+            `CDC_FLAG` STRING,
+            `CDC_DSN` INTEGER,
             `CT_CA_ID` INTEGER,
             `CT_DTS` TIMESTAMP,
             `CT_AMT` FLOAT,
@@ -2932,6 +2934,8 @@ def load_update_fact_cash_balances(dbname, staging_area_folder_upl):
 def load_update_fact_holdings(dbname, staging_area_folder_upl):
     #spark.sql(f"USE {dbname}")
     schema = """
+            `CDC_FLAG` STRING,
+            `CDC_DSN` INTEGER,
             `HH_H_T_ID` INTEGER,
             `HH_T_ID` INTEGER,
             `HH_BEFORE_QTY` FLOAT,
@@ -2988,6 +2992,8 @@ def load_update_fact_watches(dbname, staging_area_folder_upl):
     spark.sql(f"USE {dbname}")
     # Customer ID, Ticker symbol, Datetime, activate or cancel watch
     schema = """
+            `CDC_FLAG` STRING,
+            `CDC_DSN` INTEGER,
             `W_C_ID` BIGINT, 
             `W_S_SYMB` STRING,
             `W_DTS` DATE,
@@ -3056,6 +3062,8 @@ def load_update_staging_FactMarketStory(dbname, staging_area_folder_upl):
     # create_fact_market_history(dbname)
 
     schema = """
+        `CDC_FLAG` STRING,
+        `CDC_DSN` INTEGER,
         `DM_DATE` DATE,
         `DM_S_SYMB` STRING,
         `DM_CLOSE` FLOAT,
@@ -3536,6 +3544,8 @@ def load_dimen_customer_2(dbname, staging_area_folder_up2):
     
     Customers.createOrReplaceTempView("customers")
 
+    # Customers.show(2)
+
     #### Added on line 2540 "ST_NAME as Status, "
     dimCustomer = spark.sql("""
                        Select 
@@ -3714,6 +3724,8 @@ def load_dimen_account_2(dbname, staging_area_folder_up2):
     Accounts = account_base.union(add_account_df).join(updated_account_df, on=['CA_ID'], how='left_anti').union(updated_account_df)
     Accounts.createOrReplaceTempView("accounts")
     
+    # Accounts.show(2)
+
     dimAccount = spark.sql(""" Select CDC_DSN AS SK_AccountID,
                            CA_ID as AccountID,
                            CA_C_ID as SK_CustomerID,
@@ -3889,6 +3901,8 @@ def load_update_dimen_trade_2(dbname,staging_area_folder_up1):
 def load_update_fact_cash_balances_2(dbname, staging_area_folder_upl):
     #spark.sql(f"USE {dbname}")
     schema = """
+            `CDC_FLAG` String,
+            `CDC_DSN` String,
             `CT_CA_ID` INTEGER,
             `CT_DTS` TIMESTAMP,
             `CT_AMT` FLOAT,
@@ -3902,6 +3916,7 @@ def load_update_fact_cash_balances_2(dbname, staging_area_folder_upl):
     )
     
     cash.createOrReplaceTempView("cashTrans")
+    # cash.show(2)
     factCashBalances = spark.sql(""" 
                        Select SK_CustomerID, 
                            AccountID AS SK_AccountID, 
@@ -3912,7 +3927,7 @@ def load_update_fact_cash_balances_2(dbname, staging_area_folder_upl):
                        join DimDate as dt on dt.DateValue = Date(CT_DTS) 
                        Group by AccountID, SK_CustomerID, SK_DateID""")
     
-    
+    # factCashBalances.show(2)
     
     factCashBalances.write.option("append", "true").saveAsTable("FactCashBalances", mode="append")
 #     factCashBalances.show(3)
@@ -3930,6 +3945,8 @@ def load_update_fact_cash_balances_2(dbname, staging_area_folder_upl):
 def load_update_fact_holdings_2(dbname, staging_area_folder_upl):
     #spark.sql(f"USE {dbname}")
     schema = """
+            `CDC_FLAG` String,
+            `CDC_DSN` String,
             `HH_H_T_ID` INTEGER,
             `HH_T_ID` INTEGER,
             `HH_BEFORE_QTY` FLOAT,
@@ -3986,6 +4003,8 @@ def load_update_fact_watches_2(dbname, staging_area_folder_upl):
     spark.sql(f"USE {dbname}")
     # Customer ID, Ticker symbol, Datetime, activate or cancel watch
     schema = """
+            `CDC_FLAG` String,
+            `CDC_DSN` String,
             `W_C_ID` BIGINT, 
             `W_S_SYMB` STRING,
             `W_DTS` DATE,
@@ -4054,6 +4073,8 @@ def load_update_staging_FactMarketStory_2(dbname, staging_area_folder_upl):
     # create_fact_market_history(dbname)
 
     schema = """
+        `CDC_FLAG` String,
+        `CDC_DSN` String,
         `DM_DATE` DATE,
         `DM_S_SYMB` STRING,
         `DM_CLOSE` FLOAT,
