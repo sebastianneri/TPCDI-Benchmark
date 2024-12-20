@@ -4357,7 +4357,7 @@ def run_incremental_load_2(dbname, scale_factor, file_id):
 
 print("Starting historical load")
 file_id = id_generator()
-run_historical_load(dbname='test', scale_factor="Scale3", file_id=file_id)
+#run_historical_load(dbname='test', scale_factor="Scale3", file_id=file_id)
 print("Historical load finished")
 dimessages=spark.sql("SELECT * FROM dimessages")
 dimessages.show()
@@ -4379,11 +4379,24 @@ def run(file_id=file_id,scale_factors=["Scale3"]):#, "Scale4", "Scale5", "Scale6
         print("Starting data load...")
         # Signal that the data loading has started
         data_load_start_event.set()
+        # Start the timer
+        start_time = time.time()
         hist_incr_1 = run_incremental_load_1(dbname, scale_factor, file_id)
+        # End the timer
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print(f"Execution time: {execution_time:.6f} seconds")
+
         print("Data incremental load 1 finished")
         print("Starting data load 2")
+         # Start the timer
+        start_time = time.time()
         hist_incr_2 = run_incremental_load_2(dbname, scale_factor, file_id)
         print("Data incremental load 2 finished")
+        # End the timer
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print(f"Execution time: {execution_time:.6f} seconds")
         
         #metrics["TPC_DI_RPS"] = int(geometric_mean([hist_res["throughput"], hist_incr_1["throughput"], hist_incr_2["throughput"]]))
         metrics_df = pd.DataFrame(metrics, index=[0])
