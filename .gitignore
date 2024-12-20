@@ -1,3 +1,11 @@
 warehouse/
 data/
 dbfs/
+
+# Ignore virtual environments
+venv/
+.venv/
+env/
+.env/
+myenv/
+
