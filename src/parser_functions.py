@@ -1,6 +1,8 @@
-from pyspark.sql.types import LongType, StringType, StructField, StructType, BooleanType, ArrayType, IntegerType, FloatType, DateType, TimestampType
+import findspark
+findspark.init()
+#from pyspark.sql.types import LongType, StringType, StructField, StructType, BooleanType, ArrayType, IntegerType, FloatType, DateType, TimestampType
 import xml.etree.ElementTree as ET
-from pyspark.sql.functions import udf
+#from pyspark.sql.functions import udf
 from pyspark.sql.types import *
 from pyspark.sql.functions import *
 from datetime import datetime

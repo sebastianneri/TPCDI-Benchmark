@@ -1,13 +1,14 @@
 import os
-#import findspark
-#findspark.init()
+import findspark
+findspark.init()
 from pyspark.sql.functions import to_date, date_format,collect_set, expr, udf, struct, col
 # from pyspark.sql.types import LongType, StringType, StructField, StructType, BooleanType, ArrayType, IntegerType, FloatType, DateType, TimestampType
 from pyspark.sql.types import StringType, StructField, StructType
 from datetime import *
-#from pyspark import SparkContext, SparkConf
-#from pyspark.sql import SparkSession
-from src.aux_functions import cast_to_target_schema, columnarize_finwire_data_cmp, columnarize_finwire_data_fin, columnarize_finwire_data_sec, extract_finwire_type, get_marketingnameplate
+from pyspark import SparkContext, SparkConf
+from pyspark.sql import SparkSession
+from src.aux_functions import columnarize_finwire_data_cmp, columnarize_finwire_data_fin, columnarize_finwire_data_sec, extract_finwire_type
+from src.aux_functions2 import get_marketingnameplate, cast_to_target_schema
 from src.exe_create_functions import create_dim_company, create_dim_security, create_prospect_table
 from src.parser_functions import add_account_parser, customer_parser, inactive_parser, update_account_parser, update_customer_parser
 
@@ -616,24 +617,72 @@ def load_staging_Prospect(spark,dbname, staging_area_folder):
         `NetWorth` Integer
     """
     Prospect_ = spark.read.format("csv").option("delimiter", ",").schema(schema).load(f"{staging_area_folder}/Prospect.csv")
-    
-    udf_marketing = udf(lambda row: get_marketingnameplate(row), StringType())
-    Prospect_ = Prospect_.withColumn('MarketingNameplate', udf_marketing(struct([Prospect_[x] for x in Prospect_.columns])))
-    
+    print(f"Path prospect.csv:{staging_area_folder}/Prospect.csv")
+    # Get the directory of the script file
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    print("Script Directory:", script_dir)
+    print("Show prospect 1")
+    Prospect_.show(5)
+    ################################################
+    print("EXECUTING UDF MARKETING")
+    ################################################
+    # udf_marketing = udf(lambda row: get_marketingnameplate(row), StringType())
+    # Register as a UDF
+    udf_marketing = udf(get_marketingnameplate, StringType())
+     ################################################
+    print("EXECUTING UDF MARKETING READY")
+    ################################################
+    # Prospect_ = Prospect_.withColumn('MarketingNameplate', udf_marketing(struct([Prospect_[x] for x in Prospect_.columns])))
+    # Add the 'MarketingNameplate' column
+    Prospect_ = Prospect_.withColumn(
+        'MarketingNameplate',
+        udf_marketing(
+            struct(
+                col('NetWorth'),
+                col('Income'),
+                col('NumberChildren'),
+                col('NumberCreditCards'),
+                col('Age'),
+                col('CreditRating'),
+                col('NumberCars')
+            )
+        )
+    )
+    print("Show prospect 2")
+    Prospect_.show(5)
+    ################################################
+    print("PROSPECT__ READY")
+    ################################################
     now = datetime.utcnow()
     
 
     DimDate = spark.sql("""
     SELECT SK_DateID FROM DimDate WHERE SK_DateID = 20201231
     """)
+    ######################
     print("Dim Date:")
     DimDate.show()
+    print("Show prospect")
+    Prospect_.show()
+    ######################
     Prospect_ = Prospect_.crossJoin(DimDate)
+    ######################
+    print("PROSPECT JOIN WITH DIM READY")
+    ######################
     Prospect_.createOrReplaceTempView("Prospect_")
+    ######################
+    print("Temp VIEW WITH prospect")
+    ######################
+    # print("Show prospect")
+    # Prospect_.show()
+    ######################
+    
 
     if not spark:
         raise RuntimeError("SparkSession is not initialized!")
-    
+    ######################
+    print("Inerting in prospect")
+    ######################
     spark.sql(
     """
         INSERT INTO Prospect (
@@ -1362,7 +1411,7 @@ def load_dimen_customer(spark,dbname, staging_area_folder_upl):
     
     dimCustomer.createOrReplaceTempView("dimCustomer_stream")
 
-    dimCustomer = cast_to_target_schema("dimCustomer_stream", "DimCustomer")
+    dimCustomer = cast_to_target_schema(spark,"dimCustomer_stream", "DimCustomer")
      
     dimCustomer.write.mode("append").saveAsTable( "DimCustomer", mode="append")
     
@@ -1419,7 +1468,7 @@ def load_dimen_account(spark,dbname, staging_area_folder_upl):
     #dimAccount.printSchema()
     
     dimAccount.createOrReplaceTempView("dimAccount_stream")
-    dimAccount = cast_to_target_schema("dimAccount_stream", "DimAccount")
+    dimAccount = cast_to_target_schema(spark,"dimAccount_stream", "DimAccount")
 
     dimAccount.write.mode("append").saveAsTable( "DimAccount", mode="append")
     
