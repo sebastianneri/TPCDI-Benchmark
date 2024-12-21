@@ -3357,16 +3357,33 @@ def load_queries(file_path):
         query = " ".join(file.readlines())
         return query
 
-def run_audit(dbname, scale_factor):
+def run_audit(dbname, scale_factor, file_id):
     # This was already created at the start of the process
     # create_audit_table(dbname)
+    metrics = {}
     batches = ["Batch1", "Batch2", "Batch3"]
     file_path = './Audit Queries/tpcdi_audit.sql'
     for batch in batches:
         staging_area_folder = f"{os.getcwd()}/data/{scale_factor}/{batch}"
         load_audit_data(staging_area_folder)
-    spark.sql(load_queries(file_path)).show(200)
+    
+    start = time.time()
+    audit = spark.sql(load_queries(file_path))
+    audit.show(1000)
+    end = time.time() - start
+    
+    metrics["et"] = end
+    rows = audit.count()
+
     print("Audit Finished")
+
+    metrics["rows"] = rows
+    metrics["throughput"] = (rows / end)
+
+    metrics_df = pd.DataFrame(metrics, index=[0])
+    
+    metrics_df.to_csv(f"{os.getcwd()}/results/data/historical_load_{scale_factor}_{file_id}.csv", index=False)
+    return metrics_df
 
 def run_historical_load(dbname, scale_factor, file_id):
     metrics = {}
@@ -4373,24 +4390,16 @@ def run(scale_factors=["Scale3"]):#, "Scale4", "Scale5", "Scale6"]):
         hist_res = run_historical_load(dbname, scale_factor, file_id)
         hist_incr_1 = run_incremental_load_1(dbname, scale_factor, file_id)
         hist_incr_2 = run_incremental_load_2(dbname, scale_factor, file_id)
+        audit = run_audit(dbname, scale_factor, file_id)
 
-        query = input()
-        while query != "quit":
-            try:
-                query = input()
-                if "select" in query.lower():
-                    spark.sql(query).show()
-                run_audit(dbname, scale_factor)
-            except Exception as e:
-                print(e)
-
-        metrics["TPC_DI_RPS"] = int(geometric_mean([hist_res["throughput"], hist_incr_1["throughput"], hist_incr_2["throughput"]]))
+        metrics["TPC_DI_RPS"] = int(geometric_mean([hist_res["throughput"], hist_incr_1["throughput"], hist_incr_2["throughput"], audit["throughput"]]))
         metrics_df = pd.DataFrame(metrics, index=[0])
         metrics_df.to_csv(f"{os.getcwd()}/results/data/overall_stats_{scale_factor}_{file_id}.csv", index=False)
     
         print(hist_res)
         print(hist_incr_1)
         print(hist_incr_2)
+        print(audit)
         print(metrics_df)
 try:
     run()
