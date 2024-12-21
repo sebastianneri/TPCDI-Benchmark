@@ -3393,12 +3393,14 @@ def run_audit(dbname, scale_factor, file_id):
     start = time.time()
     for audit_query in audit_queries:
         audit = spark.sql(audit_query)
+        audit.createOrReplaceTempView("audit_temp")
+        audit = cast_to_target_schema("audit_temp", "Audit_Results")
         audit.write.mode("append").saveAsTable("Audit_Results", mode="append")
     end = time.time() - start
     
     audit_results = spark.table('Audit_Results')
     audit_results.show(1000)
-    
+
     metrics["et"] = end
     rows = audit.count()
 
