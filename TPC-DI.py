@@ -15,7 +15,7 @@
 # COMMAND ----------
 
 ## CELL 2
-
+import re
 import findspark
 findspark.init()
 import pyspark
@@ -567,6 +567,22 @@ def create_tradetype_table(dbname):
     )
     print("Created table TradeType.")
     
+
+
+def create_audit_results_table(dbname):
+    spark.sql(f"USE {dbname}")
+    spark.sql(
+        """
+        CREATE TABLE IF NOT EXISTS Audit_Results ( 
+           Query INT,
+           Test STRING,
+           Batch INT,
+           Result STRING,
+           Description STRING
+        )
+    """
+    )
+    print("Created table Audit Results.")
 
 
 def create_audit_table(dbname):
@@ -3357,9 +3373,14 @@ def load_queries(file_path):
         query = " ".join(file.readlines())
         return query
 
+def split_queries(large_query):
+    queries = re.split(r'\bunion\b', large_query, flags=re.IGNORECASE)
+    return [query.strip() for query in queries if query.strip()]
+
 def run_audit(dbname, scale_factor, file_id):
     # This was already created at the start of the process
     # create_audit_table(dbname)
+    create_audit_results_table(dbname)
     metrics = {}
     batches = ["Batch1", "Batch2", "Batch3"]
     file_path = './Audit Queries/tpcdi_audit.sql'
@@ -3367,10 +3388,16 @@ def run_audit(dbname, scale_factor, file_id):
         staging_area_folder = f"{os.getcwd()}/data/{scale_factor}/{batch}"
         load_audit_data(staging_area_folder)
     
+    audit_queries = split_queries(load_queries(file_path))
+
     start = time.time()
-    audit = spark.sql(load_queries(file_path))
-    audit.show(1000)
+    for audit_query in audit_queries:
+        audit = spark.sql(audit_query)
+        audit.write.mode("append").saveAsTable("Audit_Results", mode="append")
     end = time.time() - start
+    
+    audit_results = spark.table('Audit_Results')
+    audit_results.show(1000)
     
     metrics["et"] = end
     rows = audit.count()
