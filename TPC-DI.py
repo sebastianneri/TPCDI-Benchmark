@@ -3356,7 +3356,16 @@ def run_audit(dbname, scale_factor):
     for batch in batches:
         staging_area_folder = f"{os.getcwd()}/data/{scale_factor}/{batch}"
         load_audit_data(staging_area_folder)
-    spark.sql(load_queries(file_path)).show(200)
+    
+    query = input()
+    while query != "quit":
+        try:
+            query = input()
+            if "select" in query.lower():
+                spark.sql(query).show()
+            spark.sql(load_queries(file_path)).show(200)
+        except Exception as e:
+            print(e)
     print("Audit Finished")
 
 def run_historical_load(dbname, scale_factor, file_id):
