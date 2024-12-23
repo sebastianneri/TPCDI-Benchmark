@@ -69,6 +69,9 @@ def clean_warehouse(dbname="test"):
 
 # COMMAND ----------
 
+from pyspark.sql import functions as F
+from pyspark.sql import types as T
+
 def cast_to_target_schema(source_table: str, target_table: str):
     # Load source and target DataFrames
     source_df = spark.table(source_table)
@@ -84,8 +87,13 @@ def cast_to_target_schema(source_table: str, target_table: str):
         if column in target_df.columns:
             # Get the target data type for matching columns
             target_dtype = target_schema[column].dataType
-            # Cast to target data type and add to the list
-            casted_columns.append(col(column).cast(target_dtype).alias(column))
+            
+            # Special handling for Date type
+            if isinstance(target_dtype, T.DateType):
+                casted_columns.append(F.to_date(col(column)).alias(column))
+            else:
+                # Cast to target data type and add to the list
+                casted_columns.append(col(column).cast(target_dtype).alias(column))
         else:
             # Keep the original column if it does not exist in target schema
             casted_columns.append(col(column))
@@ -94,6 +102,32 @@ def cast_to_target_schema(source_table: str, target_table: str):
     casted_df = source_df.select(*casted_columns)
 
     return casted_df
+
+# def cast_to_target_schema(source_table: str, target_table: str):
+#     # Load source and target DataFrames
+#     source_df = spark.table(source_table)
+#     target_df = spark.table(target_table)
+
+#     # Get the schema of the target table
+#     target_schema = target_df.schema
+
+#     # Create a list to hold columns, casting only the matching columns
+#     casted_columns = []
+
+#     for column in source_df.columns:
+#         if column in target_df.columns:
+#             # Get the target data type for matching columns
+#             target_dtype = target_schema[column].dataType
+#             # Cast to target data type and add to the list
+#             casted_columns.append(col(column).cast(target_dtype).alias(column))
+#         else:
+#             # Keep the original column if it does not exist in target schema
+#             casted_columns.append(col(column))
+
+#     # Select all columns from the source with necessary casts applied
+#     casted_df = source_df.select(*casted_columns)
+
+#     return casted_df
 
 
 def create_dim_account(dbname):
@@ -3340,6 +3374,26 @@ def get_max(num1, num2):
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
+def load_audit_data(staging_area_folder):
+    files = os.listdir(staging_area_folder)
+    columns = ["DataSet", "BatchID", "Date", "Attribute", "Value", "DValue"]
+    for file in files:
+        if "audit" in file:
+            audit_data = spark.read.csv(f"{staging_area_folder}/{file}", header=True, sep=",")
+            audit_data = audit_data.toDF(*columns)
+            audit_data.createOrReplaceTempView("audit_temp")
+            audit_data = cast_to_target_schema("audit_temp", "Audit")
+            audit_data.write.mode("append").saveAsTable("Audit", mode="append")
+
+def load_queries(file_path):
+    with open(file_path) as file:
+        query = " ".join(file.readlines())
+        return query
+
+def run_audit(dbname, scale_factor):
+    file_path = './Audit Queries/tpcdi_audit.sql'
+    spark.sql(load_queries(file_path)).show(200)
+    print("Audit Finished")
 
 def run_historical_load(dbname, scale_factor, file_id):
     metrics = {}
@@ -4496,6 +4550,21 @@ def run(file_id=file_id,scale_factors=["Scale3"], dbname = "test"):
         print("Executing validation query incremental load 2")
         execute_validity_query_1(spark=visibility_spark)
         execute_validity_query_2(spark=visibility_spark)
+
+        batches = ["Batch1", "Batch2", "Batch3"]
+        for batch in batches:
+            staging_area_folder = f"{os.getcwd()}/data/{scale_factor}/{batch}"
+            load_audit_data(staging_area_folder)
+
+        query = input()
+        while query != "quit":
+            try:
+                query = input()
+                if "select" in query.lower():
+                    spark.sql(query).show()
+                run_audit(dbname, scale_factor)
+            except Exception as e:
+                print(e)
         
         metrics["TPC_DI_RPS"] = int(geometric_mean([hist_res["throughput"], hist_incr_1["throughput"], hist_incr_2["throughput"]]))
         metrics_df = pd.DataFrame(metrics, index=[0])
