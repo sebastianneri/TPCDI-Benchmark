@@ -610,7 +610,7 @@ def create_audit_table(dbname):
         CREATE TABLE IF NOT EXISTS Audit( 
            DataSet CHAR(20),
            BatchID Integer,
-           DATE Date,
+           Date Date,
            Attribute CHAR(50),
            Value float,
            DValue float 
