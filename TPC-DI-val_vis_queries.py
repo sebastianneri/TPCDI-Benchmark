@@ -1,3 +1,4 @@
+import re
 import threading
 import findspark
 from src.visibilities_queries import tpcdi_visibility_q1, tpcdi_visibility_q2
@@ -3390,10 +3391,70 @@ def load_queries(file_path):
         query = " ".join(file.readlines())
         return query
 
-def run_audit(dbname, scale_factor):
+def create_audit_results_table(dbname):
+    spark.sql(f"USE {dbname}")
+    spark.sql(
+        """
+        CREATE TABLE IF NOT EXISTS Audit_Results ( 
+           Query INT,
+           Test STRING,
+           Batch INT,
+           Result STRING,
+           Description STRING
+        )
+    """
+    )
+    print("Created table Audit Results.")
+
+def load_queries(file_path):
+    with open(file_path) as file:
+        query = " ".join(file.readlines())
+        return query
+
+def split_queries(large_query):
+    queries = re.split(r'\bunion\b', large_query, flags=re.IGNORECASE)
+    return [query.strip() for query in queries if query.strip()]
+
+
+def run_audit(dbname, scale_factor, file_id):
+    # This was already created at the start of the process
+    # create_audit_table(dbname)
+    create_audit_results_table(dbname)
+    metrics = {}
+    batches = ["Batch1", "Batch2", "Batch3"]
     file_path = './Audit Queries/tpcdi_audit.sql'
-    spark.sql(load_queries(file_path)).show(200)
+    for batch in batches:
+        staging_area_folder = f"{os.getcwd()}/data/{scale_factor}/{batch}"
+        load_audit_data(staging_area_folder)
+    
+    audit_queries = split_queries(load_queries(file_path))
+
+    start = time.time()
+    for audit_query in audit_queries:
+        try:
+            audit = spark.sql(audit_query)
+            audit.createOrReplaceTempView("audit_temp")
+            audit = cast_to_target_schema("audit_temp", "Audit_Results")
+            audit.write.mode("append").saveAsTable("Audit_Results", mode="append")
+        except Exception as e:
+            continue 
+    end = time.time() - start
+    
+    audit_results = spark.table('Audit_Results')
+    audit_results.show(1000)
+
+    metrics["et"] = end
+    rows = audit.count()
+
     print("Audit Finished")
+
+    metrics["rows"] = rows
+    metrics["throughput"] = (rows / end)
+
+    metrics_df = pd.DataFrame(metrics, index=[0])
+    
+    metrics_df.to_csv(f"{os.getcwd()}/results/data/historical_load_{scale_factor}_{file_id}.csv", index=False)
+    return metrics_df
 
 def run_historical_load(dbname, scale_factor, file_id):
     metrics = {}
@@ -4556,15 +4617,7 @@ def run(file_id=file_id,scale_factors=["Scale3"], dbname = "test"):
             staging_area_folder = f"{os.getcwd()}/data/{scale_factor}/{batch}"
             load_audit_data(staging_area_folder)
 
-        query = input()
-        while query != "quit":
-            try:
-                query = input()
-                if "select" in query.lower():
-                    spark.sql(query).show()
-                run_audit(dbname, scale_factor)
-            except Exception as e:
-                print(e)
+        audit = run_audit(dbname, scale_factor, file_id)
         
         metrics["TPC_DI_RPS"] = int(geometric_mean([hist_res["throughput"], hist_incr_1["throughput"], hist_incr_2["throughput"]]))
         metrics_df = pd.DataFrame(metrics, index=[0])
