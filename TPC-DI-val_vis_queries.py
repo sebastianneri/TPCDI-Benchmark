@@ -1,25 +1,7 @@
-# Databricks notebook source
-# MAGIC %md
-# MAGIC 
-# MAGIC #TPCDI
-# MAGIC <hr/>
-# MAGIC 
-# MAGIC ## Step 1: Initialization
-# MAGIC 
-# MAGIC ### In this step:
-# MAGIC 
-# MAGIC - data is cleaned from previous runs
-# MAGIC - data warehouse is created (schema)
-# MAGIC - helper functions to process data can be created
-
-# COMMAND ----------
-
-## CELL 2
-
 import threading
 import findspark
-
-from src.exe_testing_query_functions import execute_visibility_query_1, run_data_load_with_visibility_queries
+from src.visibilities_queries import tpcdi_visibility_q1, tpcdi_visibility_q2
+from src.validation_query import tpcdi_validation_query_1, tpcdi_validation_query_2
 findspark.init()
 import pyspark
 findspark.find()
@@ -27,7 +9,7 @@ import shutil
 import os
 from pyspark import SparkContext, SparkConf
 from pyspark.sql import SparkSession
-
+import queue
 
 warehouse_path = os.getcwd()+'/warehouse/'
 shutil.rmtree(warehouse_path)
@@ -53,8 +35,6 @@ visibility_spark = SparkSession.builder \
     .appName("VisibilityQuerySession") \
     .config("spark.sql.shuffle.partitions", "1") \
     .getOrCreate()
-
-
 
 
 scale_factor = "Scale3" # Options "Scale3"]):#, "Scale4", "Scale5", "Scale6"
@@ -3433,16 +3413,13 @@ def run_historical_load(dbname, scale_factor, file_id):
     metrics_df.to_csv(f"{os.getcwd()}/results/data/historical_load_{scale_factor}_{file_id}.csv", index=False)
     return metrics_df
 
-def run_incremental_load_1(dbname, scale_factor, file_id):
+def run_incremental_load_1(dbname, scale_factor, file_id, result_queue):
     metrics = {}
-
-    # clean_warehouse(dbname)
-    # create_warehouse(dbname)
-
     staging_area_folder = f"{os.getcwd()}/data/{scale_factor}/Batch2"
 
     # Run incremental update
-    start = time.time()
+    print("Executing incremental load 1")
+    start_time = time.time()
     customer = load_dimen_customer(dbname, staging_area_folder)
     account = load_dimen_account(dbname, staging_area_folder)
     dimtrade = load_update_dimen_trade(dbname, staging_area_folder)
@@ -3453,9 +3430,12 @@ def run_incremental_load_1(dbname, scale_factor, file_id):
 
     factmarkethistory =load_update_staging_FactMarketStory(dbname, staging_area_folder)
     prospect = load_update_staging_Prospect(dbname, staging_area_folder)
-    end = time.time() - start
+    # End the timer
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Incremental load execution time: {execution_time:.6f} seconds")
 
-    metrics["et"] = end
+    metrics["et"] = execution_time
 
 
     factmarkethistory_count = factmarkethistory.count()
@@ -3472,12 +3452,15 @@ def run_incremental_load_1(dbname, scale_factor, file_id):
 
 
     metrics["rows"] = rows
-    metrics["throughput"] = (rows / get_max(end,1800))
+    metrics["throughput"] = (rows / get_max(execution_time,1800))
+
 
     metrics_df = pd.DataFrame(metrics, index=[0])
     metrics_df.to_csv(f"{os.getcwd()}/results/data/incremental_load_1_{scale_factor}_{file_id}.csv", index=False)
 
-    return metrics_df
+    result_queue.put(metrics_df)  # Put the result in the queue
+
+    #return metrics_df
 
 # COMMAND ----------
 
@@ -4312,16 +4295,15 @@ def load_update_staging_Prospect_2(dbname, staging_area_folder_upl):
         SELECT * FROM Prospect WHERE BatchID = 3
     """)
 
-def run_incremental_load_2(dbname, scale_factor, file_id):
+def run_incremental_load_2(dbname, scale_factor, file_id, result_queue):
     metrics = {}
 
-    # clean_warehouse(dbname)
-    # create_warehouse(dbname)
 
     staging_area_folder = f"{os.getcwd()}/data/{scale_factor}/Batch3"
 
     # Run incremental update
-    start = time.time()
+    print("Executing incremental load 2")
+    start_time = time.time()
     customer = load_dimen_customer_2(dbname, staging_area_folder)
     account = load_dimen_account_2(dbname, staging_area_folder)
     dimtrade = load_update_dimen_trade_2(dbname, staging_area_folder)
@@ -4332,9 +4314,11 @@ def run_incremental_load_2(dbname, scale_factor, file_id):
 
     factmarkethistory =load_update_staging_FactMarketStory_2(dbname, staging_area_folder)
     prospect = load_update_staging_Prospect_2(dbname, staging_area_folder)
-    end = time.time() - start
 
-    metrics["et"] = end
+    # End the timer
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Incremental load execution time: {execution_time:.6f} seconds")
 
 
     factmarkethistory_count = factmarkethistory.count()
@@ -4350,71 +4334,17 @@ def run_incremental_load_2(dbname, scale_factor, file_id):
     rows = factmarkethistory_count + prospect_count + dimtrade_count + factcashbalance_count + holding_count + watch_count + customer_count + account_count
 
     metrics["rows"] = rows
-    metrics["throughput"] = (rows / get_max(end,1800))
+    metrics["throughput"] = (rows / get_max(execution_time,1800))
 
     metrics_df = pd.DataFrame(metrics, index=[0])
     metrics_df.to_csv(f"{os.getcwd()}/results/data/incremental_load_2_{scale_factor}_{file_id}.csv", index=False)
 
-    return metrics_df
+    result_queue.put(metrics_df)  # Put the result in the queue
+
+    #return metrics_df
 
 
-print("Starting historical load")
-file_id = id_generator()
-run_historical_load(dbname='test', scale_factor="Scale3", file_id=file_id)
-print("Historical load finished")
-dimessages=spark.sql("SELECT * FROM dimessages")
-dimessages.show()
-# Event to signal when the data loading starts
-data_load_start_event = threading.Event()
 
-def run(file_id=file_id,scale_factors=["Scale3"]):#, "Scale4", "Scale5", "Scale6"]): 
-    dbname = "test"
-     # Options "Scale3"]):#, "Scale4", "Scale5", "Scale6"
-    
-
-    for scale_factor in scale_factors:
-        metrics = {}
-        #print("Starting historical load")
-        #hist_res = run_historical_load(dbname, scale_factor, file_id)
-        #print("Historical load finished")
-        # dimessages=spark.sql("SELECT * FROM dimessages")
-        # dimessages.show()
-        print("Starting data load...")
-        # Signal that the data loading has started
-        data_load_start_event.set()
-        # Start the timer
-        start_time = time.time()
-        hist_incr_1 = run_incremental_load_1(dbname, scale_factor, file_id)
-        # End the timer
-        end_time = time.time()
-        execution_time = end_time - start_time
-        print(f"Execution time: {execution_time:.6f} seconds")
-
-        print("Data incremental load 1 finished")
-        print("Starting data load 2")
-         # Start the timer
-        start_time = time.time()
-        hist_incr_2 = run_incremental_load_2(dbname, scale_factor, file_id)
-        print("Data incremental load 2 finished")
-        # End the timer
-        end_time = time.time()
-        execution_time = end_time - start_time
-        print(f"Execution time: {execution_time:.6f} seconds")
-        
-        #metrics["TPC_DI_RPS"] = int(geometric_mean([hist_res["throughput"], hist_incr_1["throughput"], hist_incr_2["throughput"]]))
-        metrics_df = pd.DataFrame(metrics, index=[0])
-        metrics_df.to_csv(f"{os.getcwd()}/results/data/overall_stats_{scale_factor}_{file_id}.csv", index=False)
-    
-        #print(hist_res)
-        print(hist_incr_1)
-        print(hist_incr_2)
-        print(metrics_df)
-
-
-run_data_load_with_visibility_queries(
-    incremental_load_func=run(), 
-    visibility_query_func=execute_visibility_query_1(spark=visibility_spark, data_load_start_event=data_load_start_event)
-    )
 
 # spark.sql(f"USE {"test"}")
 # spark.sql("SELECT * FROM dimessages")
@@ -4443,4 +4373,135 @@ run_data_load_with_visibility_queries(
 # MAGIC - a valid benchmark run must report "OK" for every test.
 
 # COMMAND ----------
+
+
+# Execution function visibility query 1
+def execute_visibility_query_1(spark,visibility_query1=tpcdi_visibility_q1):
+    print("Starting visibility queries 1...")
+    # Start measure the time execution
+    start_time = time.time()
+    while time.time() - start_time < 20:  # Run queries for the duration of the load function
+        # Simulate executing the query
+        print(f"Executing visibility 1 query at {time.strftime('%Y-%m-%d %H:%M:%S')}...")
+        start_time_query = time.time()
+        # execute the query
+        result=spark.sql(visibility_query1)
+        # calculate the time execution
+        elapsed = time.time() - start_time_query
+        print(f"Execution time query:{elapsed}")
+        time.sleep(5)# Wait 5 seconds before running the next query
+
+# Execution function visibility query 2
+def execute_visibility_query_2(spark,visibility_query2=tpcdi_visibility_q2):
+    print("Starting visibility queries 2...")
+    # Start measure the time execution
+    start_time = time.time()
+    while time.time() - start_time < 20:  # Run queries for the duration of the load function
+        # Simulate executing the query
+        print(f"Executing visibility 2 query at {time.strftime('%Y-%m-%d %H:%M:%S')}...")
+        start_time_query = time.time()
+        # execute the query
+        result=spark.sql(visibility_query2)
+        # calculate the time execution
+        elapsed = time.time() - start_time
+        print(f"Execution time query:{elapsed}")
+        time.sleep(5)# Wait 5 seconds before running the next query
+
+#########################################################################
+#                                                                       #
+#                         VALIDITY QUERIES                              #        
+#                                                                       #    
+#########################################################################
+
+
+ # The batch validation query writes results into the DImessages table defined in Clause 3.2.8,
+ # which are used in the automated audit phase to validate the transformed data in the Data
+ # Warehouse.
+
+# Execution function validity query
+def execute_validity_query_1(spark,validity_query=tpcdi_validation_query_1):
+    # Start measure the time execution
+    start_time = time.time()
+    result=spark.sql(validity_query)
+    # calculate the time execution
+    elapsed = time.time() - start_time
+    print(f"Execution time validation query 1:{elapsed}")
+
+
+# Execution function validity query
+def execute_validity_query_2(spark,validity_query=tpcdi_validation_query_2):
+    # Start measure the time execution
+    start_time = time.time()
+    result=spark.sql(validity_query)
+    # calculate the time execution
+    elapsed = time.time() - start_time
+    print(f"Execution time query validation query 2:{elapsed}")
+
+
+# Run the data load and visibility queries concurrently
+def run_data_load_with_visibility_queries(dbname, scale_factor, file_id,incremental_load_func, visibility_query_func):
+    # Create a queue to store the load_data result
+    result_queue = queue.Queue()
+    
+    # Create threads for data load and visibility queries
+    data_incremental_load_thread = threading.Thread(target=incremental_load_func, args=(dbname, scale_factor, file_id, result_queue,))
+    visibility_thread = threading.Thread(target=visibility_query_func)
+
+    # Start both threads
+    data_incremental_load_thread.start()
+    visibility_thread.start()
+
+    # Wait for both threads to finish
+    data_incremental_load_thread.join()
+    df_metrics = result_queue.get()  # Retrieve the DataFrame from the queue
+    visibility_thread.join()
+    # Return the loaded data as the final output
+    return df_metrics
+
+
+file_id = id_generator()
+
+def run(file_id=file_id,scale_factors=["Scale3"], dbname = "test"):
+
+    for scale_factor in scale_factors:
+        metrics = {}
+        print("Starting historical load")
+        hist_res = run_historical_load(dbname, scale_factor, file_id)
+        print("Historical load st:")
+        print(hist_res)
+        print("Executing validation query historical load")
+        execute_validity_query_1(spark=visibility_spark)
+        execute_validity_query_2(spark=visibility_spark)
+        # Starting data load 1
+        print(f"Starting data load 1 at {time.strftime('%Y-%m-%d %H:%M:%S')}...")
+        hist_incr_1=run_data_load_with_visibility_queries(
+        dbname, scale_factor, file_id,
+        incremental_load_func=run_incremental_load_1, 
+        visibility_query_func=execute_visibility_query_1(spark=visibility_spark)
+        )
+        print("Historical incremental 1 st:")
+        print(hist_incr_1)
+        print("Executing validation query incremental load 1")
+        execute_validity_query_1(spark=visibility_spark)
+        execute_validity_query_2(spark=visibility_spark)
+        # starting data load 2
+        print(f"Starting data load 2 at {time.strftime('%Y-%m-%d %H:%M:%S')}...")
+        hist_incr_2=run_data_load_with_visibility_queries(
+        dbname, scale_factor, file_id,
+        incremental_load_func=run_incremental_load_2, 
+        visibility_query_func=execute_visibility_query_2(spark=visibility_spark)
+        )
+        print("Historical incremental 2 st:")
+        print(hist_incr_2)
+        print("Executing validation query incremental load 2")
+        execute_validity_query_1(spark=visibility_spark)
+        execute_validity_query_2(spark=visibility_spark)
+        
+        metrics["TPC_DI_RPS"] = int(geometric_mean([hist_res["throughput"], hist_incr_1["throughput"], hist_incr_2["throughput"]]))
+        metrics_df = pd.DataFrame(metrics, index=[0])
+        metrics_df.to_csv(f"{os.getcwd()}/results/data/overall_stats_{scale_factor}_{file_id}.csv", index=False)
+
+
+# Execution
+run(file_id=file_id,scale_factors=["Scale3"])
 

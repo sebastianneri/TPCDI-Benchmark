@@ -1,5 +1,6 @@
 
-tpcdi_validation_query_1 = """
+
+tpcdi_validation_query = """
 insert into DImessages
 
 select
@@ -68,11 +69,8 @@ from (
     /* Additional information used at Audit time */
     union select 'DimCustomer' as MessageSource, 'Inactive customers' as MessageText, count(*) from DimCustomer where IsCurrent = 1 and Status = 'Inactive'
     union select 'FactWatches' as MessageSource, 'Inactive watches' as MessageText, count(*) from FactWatches where SK_DATEID_DATEREMOVED is not null
-) y on 1=1; 
-"""
-
-
-tpcdi_validation_query_2 = """
+) y on 1=1
+; 
 /* Phase complete record */
 insert into DImessages
 select
