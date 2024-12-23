@@ -4619,7 +4619,7 @@ def run(file_id=file_id,scale_factors=["Scale3"], dbname = "test"):
 
         audit = run_audit(dbname, scale_factor, file_id)
         
-        metrics["TPC_DI_RPS"] = int(geometric_mean([hist_res["throughput"], hist_incr_1["throughput"], hist_incr_2["throughput"]]))
+        metrics["TPC_DI_RPS"] = int(geometric_mean([hist_res["throughput"], hist_incr_1["throughput"], hist_incr_2["throughput"], audit["throughput"]]))
         metrics_df = pd.DataFrame(metrics, index=[0])
         metrics_df.to_csv(f"{os.getcwd()}/results/data/overall_stats_{scale_factor}_{file_id}.csv", index=False)
 
