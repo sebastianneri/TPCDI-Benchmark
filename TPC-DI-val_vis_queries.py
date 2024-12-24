@@ -4563,6 +4563,7 @@ def execute_validity_query_1(spark,validity_query=tpcdi_validation_query_1):
     result.show()
     # calculate the time execution
     elapsed = time.time() - start_time
+    spark.sql("DROP TABLE Validity")
     print(f"Execution time validation query 1:{elapsed}")
 
 
