@@ -1,21 +1,5 @@
-
-tpcdi_validation_query_1 = """
-insert into DImessages
-
-select
-
-     CURRENT_TIMESTAMP as MessageDateAndTime
-     ,case when BatchID is null then 0 else BatchID end as BatchID
-     ,MessageSource
-     ,MessageText 
-     ,'Validation' as MessageType
-     ,MessageData
-
-from (
-     select max(BatchID) as BatchID from DImessages 
-) x join (
-
-    /* Basic row counts */
+tpcdi_validation_query_0 = """
+/* Basic row counts */
      select 'DimAccount' as MessageSource, 'Row count' as MessageText, count(*) as MessageData from DimAccount
      union select 'DimBroker' as MessageSource, 'Row count' as MessageText, count(*) as MessageData from DimBroker
      union select 'DimCompany' as MessageSource, 'Row count' as MessageText, count(*) as MessageData from DimCompany
@@ -68,7 +52,23 @@ from (
     /* Additional information used at Audit time */
     union select 'DimCustomer' as MessageSource, 'Inactive customers' as MessageText, count(*) from DimCustomer where IsCurrent = 1 and Status = 'Inactive'
     union select 'FactWatches' as MessageSource, 'Inactive watches' as MessageText, count(*) from FactWatches where SK_DATEID_DATEREMOVED is not null
-) y on 1=1; 
+"""
+
+tpcdi_validation_query_1 = """
+insert into DImessages
+
+select
+
+     CURRENT_TIMESTAMP as MessageDateAndTime
+     ,case when BatchID is null then 0 else BatchID end as BatchID
+     ,MessageSource
+     ,MessageText 
+     ,'Validation' as MessageType
+     ,MessageData
+
+from (
+     select max(BatchID) as BatchID from DImessages 
+) x join Validity y on 1=1; 
 """
 
 

@@ -2,7 +2,7 @@ import re
 import threading
 import findspark
 from src.visibilities_queries import tpcdi_visibility_q1, tpcdi_visibility_q2
-from src.validation_query import tpcdi_validation_query_1, tpcdi_validation_query_2
+from src.validation_query import tpcdi_validation_query_1, tpcdi_validation_query_2, tpcdi_validation_query_0
 findspark.init()
 import pyspark
 findspark.find()
@@ -4500,7 +4500,9 @@ def execute_visibility_query_1(spark,visibility_query1=tpcdi_visibility_q1):
         print(f"Executing visibility 1 query at {time.strftime('%Y-%m-%d %H:%M:%S')}...")
         start_time_query = time.time()
         # execute the query
+
         result=spark.sql(visibility_query1)
+        result.show()
         # calculate the time execution
         elapsed = time.time() - start_time_query
         print(f"Execution time query:{elapsed}")
@@ -4517,6 +4519,7 @@ def execute_visibility_query_2(spark,visibility_query2=tpcdi_visibility_q2):
         start_time_query = time.time()
         # execute the query
         result=spark.sql(visibility_query2)
+        result.show()
         # calculate the time execution
         elapsed = time.time() - start_time
         print(f"Execution time query:{elapsed}")
@@ -4533,11 +4536,30 @@ def execute_visibility_query_2(spark,visibility_query2=tpcdi_visibility_q2):
  # which are used in the automated audit phase to validate the transformed data in the Data
  # Warehouse.
 
+def create_validity_base(dbname="test"):
+    spark.sql(f"USE {dbname}")
+    query = """
+            CREATE TABLE IF NOT EXISTS Validity AS (
+                MessageSource AS STRING,
+                MessageText AS STRING,
+                MessageData AS INT
+            )
+    """
+    spark.sql(query)
+    print("Validity Table Created")
+
 # Execution function validity query
 def execute_validity_query_1(spark,validity_query=tpcdi_validation_query_1):
     # Start measure the time execution
     start_time = time.time()
-    result=spark.sql(validity_query)
+    base_queries = split_queries(tpcdi_validation_query_0)
+    for base_query in base_queries:
+        validation_base = spark.sql(base_query)
+        validation_base.createOrReplaceTempView("validity_temp")
+        validation_base = cast_to_target_schema("validity_temp", "Validity")
+        validation_base.write.mode("append").saveAsTable("Validity", mode="append")
+    result=spark.sql(tpcdi_validation_query_1)
+    result.show()
     # calculate the time execution
     elapsed = time.time() - start_time
     print(f"Execution time validation query 1:{elapsed}")
@@ -4548,6 +4570,7 @@ def execute_validity_query_2(spark,validity_query=tpcdi_validation_query_2):
     # Start measure the time execution
     start_time = time.time()
     result=spark.sql(validity_query)
+    result.show()
     # calculate the time execution
     elapsed = time.time() - start_time
     print(f"Execution time query validation query 2:{elapsed}")
