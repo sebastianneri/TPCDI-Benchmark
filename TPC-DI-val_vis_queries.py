@@ -4553,6 +4553,7 @@ def execute_validity_query_1(spark,validity_query=tpcdi_validation_query_1):
     # Start measure the time execution
     start_time = time.time()
     base_queries = split_queries(tpcdi_validation_query_0)
+    create_validity_base()
     for base_query in base_queries:
         validation_base = spark.sql(base_query)
         validation_base.createOrReplaceTempView("validity_temp")
