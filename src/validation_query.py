@@ -50,8 +50,8 @@ tpcdi_validation_query_0 = """
 			-- (cannot join on SK_DateID_DateRemoved because that field can be null)
 			inner join DimSecurity s on f.SK_SecurityID = s.SK_SecurityID
     /* Additional information used at Audit time */
-    union select 'DimCustomer' as MessageSource, 'Inactive customers' as MessageText, count(*) from DimCustomer where IsCurrent = 1 and Status = 'Inactive'
-    union select 'FactWatches' as MessageSource, 'Inactive watches' as MessageText, count(*) from FactWatches where SK_DATEID_DATEREMOVED is not null
+    union select 'DimCustomer' as MessageSource, 'Inactive customers' as MessageText, count(*) as MessageData from DimCustomer where IsCurrent = 1 and Status = 'Inactive'
+    union select 'FactWatches' as MessageSource, 'Inactive watches' as MessageText, count(*) as MessageData from FactWatches where SK_DATEID_DATEREMOVED is not null
 """
 
 tpcdi_validation_query_1 = """
