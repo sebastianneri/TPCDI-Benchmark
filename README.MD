@@ -1,5 +1,9 @@
 # TPC-DI Benchmak in Spark SQL
 
+This repository was originally developed by L. A. León, et. al “TPC-DI: Benchmarking Apache Spark on Databricks,” 2022.
+
+To run the script please run the **TPC-DI-val_vis_queries.py** on the branch **ignacio2**.
+
 TPC Benchmark™ DI (TPC-DI) is a performance test of tools that move and integrate data between various systems. Data Integration (DI) tools are available from a number of vendors, but until now there has been no standard way to compare them. Such tools have also been referred to as Extract, Transform and Load (ETL) tools at times. 
 
 Several tools are used for the purpose of implementing TPC-DI benchmark on Apache Spark. The goal of this project was to benchmark Apache Spark and evaluate this data warehouse based on the performance using TPC-DI guideline and data.
