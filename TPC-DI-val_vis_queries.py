@@ -4539,7 +4539,7 @@ def execute_visibility_query_2(spark,visibility_query2=tpcdi_visibility_q2):
 def create_validity_base(dbname="test"):
     spark.sql(f"USE {dbname}")
     query = """
-            CREATE TABLE IF NOT EXISTS Validity AS (
+            CREATE TABLE IF NOT EXISTS Validity (
                 MessageSource STRING,
                 MessageText STRING,
                 MessageData INT
