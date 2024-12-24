@@ -1,6 +1,6 @@
 # TPC-DI Benchmak in Spark SQL
 
-This repository was originally developed by L. A. León, et. al “TPC-DI: Benchmarking Apache Spark on Databricks,” 2022.
+This repository was originally developed by L. A. León, et. al “TPC-DI: Benchmarking Apache Spark on Databricks,” 2022. https://github.com/Action52/TPCDI-Benchmark
 
 To run the script please run the **TPC-DI-val_vis_queries.py** on the branch **ignacio2**.
 
