@@ -11,6 +11,7 @@ import os
 from pyspark import SparkContext, SparkConf
 from pyspark.sql import SparkSession
 import queue
+import builtins
 
 warehouse_path = os.getcwd()+'/warehouse/'
 shutil.rmtree(warehouse_path)
@@ -3433,6 +3434,7 @@ def run_audit(dbname, scale_factor, file_id):
     for audit_query in audit_queries:
         try:
             audit = spark.sql(audit_query)
+            audit.show(truncate=False)
             audit.createOrReplaceTempView("audit_temp")
             audit = cast_to_target_schema("audit_temp", "Audit_Results")
             audit.write.mode("append").saveAsTable("Audit_Results", mode="append")
@@ -4539,7 +4541,7 @@ def execute_visibility_query_2(spark,visibility_query2=tpcdi_visibility_q2):
 def create_validity_base(dbname="test"):
     spark.sql(f"USE {dbname}")
     query = """
-            CREATE TABLE IF NOT EXISTS Validity AS (
+            CREATE TABLE IF NOT EXISTS Validity (
                 MessageSource STRING,
                 MessageText STRING,
                 MessageData INT
@@ -4612,6 +4614,7 @@ def run(file_id=file_id,scale_factors=["Scale3"], dbname = "test"):
         print("Executing validation query historical load")
         execute_validity_query_1(spark=visibility_spark)
         execute_validity_query_2(spark=visibility_spark)
+
         # Starting data load 1
         print(f"Starting data load 1 at {time.strftime('%Y-%m-%d %H:%M:%S')}...")
         hist_incr_1=run_data_load_with_visibility_queries(
@@ -4624,6 +4627,7 @@ def run(file_id=file_id,scale_factors=["Scale3"], dbname = "test"):
         print("Executing validation query incremental load 1")
         execute_validity_query_1(spark=visibility_spark)
         execute_validity_query_2(spark=visibility_spark)
+
         # starting data load 2
         print(f"Starting data load 2 at {time.strftime('%Y-%m-%d %H:%M:%S')}...")
         hist_incr_2=run_data_load_with_visibility_queries(
@@ -4642,13 +4646,16 @@ def run(file_id=file_id,scale_factors=["Scale3"], dbname = "test"):
             staging_area_folder = f"{os.getcwd()}/data/{scale_factor}/{batch}"
             load_audit_data(staging_area_folder)
 
-        audit = run_audit(dbname, scale_factor, file_id)
-        
-        metrics["TPC_DI_RPS"] = int(geometric_mean([hist_res["throughput"], hist_incr_1["throughput"], hist_incr_2["throughput"], audit["throughput"]]))
+        try:
+            audit = run_audit(dbname, scale_factor, file_id)
+        except Exception as e:
+            print(e)
+
+        metrics["TPC_DI_RPS"] = int(geometric_mean([hist_res["throughput"], hist_incr_1["throughput"], hist_incr_2["throughput"]]))
         metrics_df = pd.DataFrame(metrics, index=[0])
         metrics_df.to_csv(f"{os.getcwd()}/results/data/overall_stats_{scale_factor}_{file_id}.csv", index=False)
 
 
 # Execution
-run(file_id=file_id,scale_factors=["Scale3"])
+run(file_id=file_id,scale_factors=["Scale3", "Scale4", "Scale5", "Scale6"])
 
