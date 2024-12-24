@@ -4540,9 +4540,9 @@ def create_validity_base(dbname="test"):
     spark.sql(f"USE {dbname}")
     query = """
             CREATE TABLE IF NOT EXISTS Validity AS (
-                MessageSource AS STRING,
-                MessageText AS STRING,
-                MessageData AS INT
+                MessageSource STRING,
+                MessageText STRING,
+                MessageData INT
             )
     """
     spark.sql(query)
